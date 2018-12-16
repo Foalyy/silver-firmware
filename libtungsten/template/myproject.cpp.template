@@ -1,0 +1,17 @@
+#include <carbide.h>
+// Include library headers here to add modules in your project, e.g.
+// #include <gpio.h>
+// For modules that are not compiled by default, don't forget to also add them
+// in the MODULE parameter in your Makefile
+
+int main() {
+    // Initialize the microcontroller, leds and button
+    Carbide::init();
+
+    // ... more initialization stuff ...
+
+    // Running loop
+    while (1) {
+        // Your program goes there!
+    }
+}
