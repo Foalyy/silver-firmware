@@ -35,7 +35,7 @@ namespace DAC {
 namespace EIC {
 
     GPIO::Pin PINS[] = {
-        {}, // EXTINT0/NMI isn't available on this packages
+        {}, // EXTINT0/NMI isn't available on this package
         {GPIO::Port::A,  6, GPIO::Periph::C}, // EXTINT1
         {GPIO::Port::A,  4, GPIO::Periph::C}, // EXTINT2
         {GPIO::Port::A,  5, GPIO::Periph::C}, // EXTINT3
@@ -154,7 +154,7 @@ namespace TC {
 
     const uint8_t N_TC = 1;
 
-    GPIO::Pin PINS[MAX_N_TC][N_CHANNELS * N_LINES] = {
+    GPIO::Pin PINS[MAX_N_TC][N_COUNTERS_PER_TC * N_CHANNELS_PER_COUNTER] = {
         {
             {GPIO::Port::A,  8, GPIO::Periph::B}, // TC0 A0
             {GPIO::Port::A,  9, GPIO::Periph::B}, // TC0 B0
@@ -165,7 +165,7 @@ namespace TC {
         }
     };
 
-    GPIO::Pin PINS_CLK[MAX_N_TC][N_CHANNELS * N_LINES] = {
+    GPIO::Pin PINS_CLK[MAX_N_TC][N_EXTERNAL_CLOCKS_PER_TC] = {
         {
             {GPIO::Port::A, 14, GPIO::Periph::B}, // TC0 CLK0
             {GPIO::Port::A, 15, GPIO::Periph::B}, // TC0 CLK1
@@ -193,12 +193,29 @@ namespace USART {
         {GPIO::Port::A, 31, GPIO::Periph::E}  // USART3 TX
     };
 
+    // RTS
+    GPIO::Pin PINS_RTS[] = {
+        {GPIO::Port::A,  8, GPIO::Periph::A}, // USART0 RTS
+        {GPIO::Port::A, 13, GPIO::Periph::A}, // USART1 RTS
+        {GPIO::Port::A, 17, GPIO::Periph::A}, // USART2 RTS
+        {GPIO::Port::A, 27, GPIO::Periph::E}  // USART3 RTS
+    };
+
+    // CTS
+    GPIO::Pin PINS_CTS[] = {
+        {GPIO::Port::A,  9, GPIO::Periph::A}, // USART0 CTS
+        {GPIO::Port::A, 21, GPIO::Periph::B}, // USART1 CTS
+        {GPIO::Port::A, 22, GPIO::Periph::B}, // USART2 CTS
+        {GPIO::Port::A, 28, GPIO::Periph::E}  // USART3 CTS
+    };
+
 
     // Alternatives for USART0
     // Be careful when using these pins that they are not already used for something else
 
     //{GPIO::Port::A,  5, GPIO::Periph::B} // RX
     //{GPIO::Port::A,  7, GPIO::Periph::B} // TX
+    //{GPIO::Port::A,  6, GPIO::Periph::B} // RTS
 
 
     // Alternatives for USART2

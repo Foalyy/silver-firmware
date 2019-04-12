@@ -4,7 +4,9 @@
 
 namespace OLED {
 
-    SPI::Slave _spi = 0;
+    SPI::Peripheral _spi = 0;
+
+    Rotation _rotation;
 
     // Display buffer
     uint8_t _displayBuffer[DISPLAY_BUFFER_SIZE];
@@ -19,13 +21,13 @@ namespace OLED {
     GPIO::Pin _pinDC;
     GPIO::Pin _pinRES;
 
-    void initScreen(SPI::Slave spi, GPIO::Pin pinDC, GPIO::Pin pinRES) {
+    void initScreen(SPI::Peripheral spi, GPIO::Pin pinDC, GPIO::Pin pinRES) {
         _spi = spi;
         _pinDC = pinDC;
         _pinRES = pinRES;
         GPIO::enableOutput(_pinDC, GPIO::LOW);
         GPIO::enableOutput(_pinRES, GPIO::HIGH);
-        SPI::enableSlave(_spi);
+        SPI::addPeripheral(_spi);
 
         // Disable the screen
         disable();
@@ -69,7 +71,7 @@ namespace OLED {
     void sendCommand(uint8_t command) {
         uint8_t buffer[] = {command};
         GPIO::set(_pinDC, GPIO::LOW);
-        SPI::transfer(_spi, buffer, nullptr, 1);
+        SPI::transfer(_spi, buffer, 1);
     }
 
     // Send the data of a row between two x positions
@@ -100,7 +102,7 @@ namespace OLED {
                 l = BUFFER_SIZE;
             }
             memcpy(buffer, _displayBuffer + page * WIDTH + cursor, l);
-            SPI::transfer(_spi, buffer, nullptr, l);
+            SPI::transfer(_spi, buffer, l);
             cursor += l;
         }
     }
@@ -131,7 +133,7 @@ namespace OLED {
     }
 
     // Invert the screen (black on white instead of white on black)
-    void setScreenInverted(bool inverted) {
+    void setColorInverted(bool inverted) {
         if (inverted) {
             sendCommand(CMD_DISPLAY_INVERTED);
         } else {
@@ -143,6 +145,7 @@ namespace OLED {
     void clear() {
         memset(_displayBuffer, 0, DISPLAY_BUFFER_SIZE);
         memset(_displayBufferDirty, 0xFF, WIDTH);
+        setCursor(0, 0);
     }
 
     // Clear a specific region of the screen
@@ -455,6 +458,84 @@ namespace OLED {
             }
         }
     }
+    
+    // Print a single symbol at the specified position using the xlarge font size
+    void printXLarge(unsigned int x, unsigned int y, const Font::Char32 c) {
+        const unsigned int page = y / 8;
+        const unsigned int yOffset = y - page * 8;
+        for (unsigned int i = 0; i < c.width; i++) {
+            if (x + i >= WIDTH) {
+                break;
+            }
+            if (page < N_PAGES) {
+                _displayBuffer[page * WIDTH + x + i] |= (c.bitmap[i] << yOffset);
+                _displayBufferDirty[x + i] |= 1 << page;
+            }
+            if (yOffset + c.height > 8 && page + 1 < N_PAGES) {
+                _displayBuffer[(page + 1) * WIDTH + x + i] |= (c.bitmap[i] >> (8 - yOffset));
+                _displayBufferDirty[x + i] |= 1 << (page + 1);
+            }
+            if (yOffset + c.height > 16 && page + 2 < N_PAGES) {
+                _displayBuffer[(page + 2) * WIDTH + x + i] |= (c.bitmap[i] >> (16 - yOffset));
+                _displayBufferDirty[x + i] |= 1 << (page + 2);
+            }
+            if (yOffset + c.height > 24 && page + 3 < N_PAGES) {
+                _displayBuffer[(page + 3) * WIDTH + x + i] |= (c.bitmap[i] >> (24 - yOffset));
+                _displayBufferDirty[x + i] |= 1 << (page + 3);
+            }
+            if (yOffset + c.height > 32 && page + 4 < N_PAGES) {
+                _displayBuffer[(page + 4) * WIDTH + x + i] |= (c.bitmap[i] >> (32 - yOffset));
+                _displayBufferDirty[x + i] |= 1 << (page + 4);
+            }
+        }
+    }
+    
+    // Print a single symbol at the specified position using the xxlarge font size
+    void printXXLarge(unsigned int x, unsigned int y, const Font::Char64 c) {
+        const unsigned int page = y / 8;
+        const unsigned int yOffset = y - page * 8;
+        for (unsigned int i = 0; i < c.width; i++) {
+            if (x + i >= WIDTH) {
+                break;
+            }
+            if (page < N_PAGES) {
+                _displayBuffer[page * WIDTH + x + i] |= (c.bitmap[i] << yOffset);
+                _displayBufferDirty[x + i] |= 1 << page;
+            }
+            if (yOffset + c.height > 8 && page + 1 < N_PAGES) {
+                _displayBuffer[(page + 1) * WIDTH + x + i] |= (c.bitmap[i] >> (8 - yOffset));
+                _displayBufferDirty[x + i] |= 1 << (page + 1);
+            }
+            if (yOffset + c.height > 16 && page + 2 < N_PAGES) {
+                _displayBuffer[(page + 2) * WIDTH + x + i] |= (c.bitmap[i] >> (16 - yOffset));
+                _displayBufferDirty[x + i] |= 1 << (page + 2);
+            }
+            if (yOffset + c.height > 24 && page + 3 < N_PAGES) {
+                _displayBuffer[(page + 3) * WIDTH + x + i] |= (c.bitmap[i] >> (24 - yOffset));
+                _displayBufferDirty[x + i] |= 1 << (page + 3);
+            }
+            if (yOffset + c.height > 32 && page + 4 < N_PAGES) {
+                _displayBuffer[(page + 4) * WIDTH + x + i] |= (c.bitmap[i] >> (32 - yOffset));
+                _displayBufferDirty[x + i] |= 1 << (page + 4);
+            }
+            if (yOffset + c.height > 40 && page + 5 < N_PAGES) {
+                _displayBuffer[(page + 5) * WIDTH + x + i] |= (c.bitmap[i] >> (40 - yOffset));
+                _displayBufferDirty[x + i] |= 1 << (page + 5);
+            }
+            if (yOffset + c.height > 48 && page + 6 < N_PAGES) {
+                _displayBuffer[(page + 6) * WIDTH + x + i] |= (c.bitmap[i] >> (48 - yOffset));
+                _displayBufferDirty[x + i] |= 1 << (page + 6);
+            }
+            if (yOffset + c.height > 56 && page + 7 < N_PAGES) {
+                _displayBuffer[(page + 7) * WIDTH + x + i] |= (c.bitmap[i] >> (56 - yOffset));
+                _displayBufferDirty[x + i] |= 1 << (page + 7);
+            }
+            if (yOffset + c.height > 64 && page + 8 < N_PAGES) {
+                _displayBuffer[(page + 8) * WIDTH + x + i] |= (c.bitmap[i] >> (64 - yOffset));
+                _displayBufferDirty[x + i] |= 1 << (page + 8);
+            }
+        }
+    }
 
     // Draw a progress bar
     void progressbar(unsigned int x, unsigned int y, unsigned int width, unsigned int height, unsigned char percent) {
@@ -631,9 +712,10 @@ namespace OLED {
         _inverted = inverted;
     }
 
-    // Returns the screen upside down to accomodate its mounting direction
-    void setUpsideDown(bool upsideDown) {
-        if (upsideDown) {
+    // Rotate the screen to accomodate its mounting direction
+    void setRotation(Rotation rotation) {
+        _rotation = rotation;
+        if (rotation == Rotation::R180 || rotation == Rotation::R270) {
             sendCommand(CMD_SEGMENT_REMAP_ON);
             sendCommand(CMD_COM_SCAN_DIRECTION_INVERT);
         } else {

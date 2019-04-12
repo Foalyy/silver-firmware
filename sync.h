@@ -16,11 +16,15 @@ namespace Sync {
     const uint8_t HEADER_COMMAND = 2;
     const int MAX_PAYLOAD_SIZE = 10;
 
-    const uint8_t CMD_FOCUS = 0x80;
-    const uint8_t CMD_TRIGGER = 0x81;
-    const uint8_t CMD_TRIGGER_NO_DELAY = 0x82;
-    const uint8_t CMD_TRIGGER_HOLD = 0x83;
-    const uint8_t CMD_TRIGGER_RELEASE = 0x84;
+    const uint8_t CMD_GET_GUI_STATE = 0x80;
+    const uint8_t CMD_GET_GUI_UPDATE = 0x81;
+    const uint8_t CMD_FOCUS = 0x90;
+    const uint8_t CMD_FOCUS_HOLD = 0x91;
+    const uint8_t CMD_FOCUS_RELEASE = 0x92;
+    const uint8_t CMD_TRIGGER = 0x93;
+    const uint8_t CMD_TRIGGER_NO_DELAY = 0x94;
+    const uint8_t CMD_TRIGGER_HOLD = 0x95;
+    const uint8_t CMD_TRIGGER_RELEASE = 0x96;
 
 
     bool init();

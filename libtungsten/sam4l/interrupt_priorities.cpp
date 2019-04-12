@@ -11,6 +11,9 @@
 #include "usart.h"
 #include "usb.h"
 
+// Note : a high number means a lower priority.
+// The highest priority is 1.
+
 namespace AST {
     uint8_t INTERRUPT_PRIORITY = 100;
 }
@@ -37,6 +40,10 @@ namespace I2C {
 
 namespace PM {
     uint8_t INTERRUPT_PRIORITY = 2;
+}
+
+namespace SPI {
+    uint8_t INTERRUPT_PRIORITY = 10;
 }
 
 namespace TC {

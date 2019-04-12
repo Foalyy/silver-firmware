@@ -68,10 +68,10 @@ namespace GLOC {
             {GPIO::Port::A,  7, GPIO::Periph::D}  // GLOC0 IN3
         },
         {
-            {GPIO::Port::A, 27, GPIO::Periph::D}, // GLOC1 IN4
-            {GPIO::Port::A, 28, GPIO::Periph::D}, // GLOC1 IN5
-            {GPIO::Port::A, 29, GPIO::Periph::D}, // GLOC1 IN6
-            {GPIO::Port::A, 30, GPIO::Periph::D}  // GLOC1 IN7
+            {GPIO::Port::A, 27, GPIO::Periph::D}, // GLOC1 IN0
+            {GPIO::Port::A, 28, GPIO::Periph::D}, // GLOC1 IN1
+            {GPIO::Port::A, 29, GPIO::Periph::D}, // GLOC1 IN2
+            {GPIO::Port::A, 30, GPIO::Periph::D}  // GLOC1 IN3
         }
     };
 
@@ -147,32 +147,32 @@ namespace SCIF {
 
 namespace SPI {
 
-    GPIO::Pin PIN_MISO =  {GPIO::Port::A, 21, GPIO::Periph::A};
-    GPIO::Pin PIN_MOSI =  {GPIO::Port::A, 22, GPIO::Periph::A};
-    GPIO::Pin PIN_SCK =   {GPIO::Port::A, 23, GPIO::Periph::A};
-    GPIO::Pin PIN_NPCS0 = {GPIO::Port::A, 24, GPIO::Periph::A};
-    GPIO::Pin PIN_NPCS1 = {GPIO::Port::A, 13, GPIO::Periph::C};
+    GPIO::Pin PIN_MISO =  {GPIO::Port::A, 27, GPIO::Periph::A};
+    GPIO::Pin PIN_MOSI =  {GPIO::Port::A, 28, GPIO::Periph::A};
+    GPIO::Pin PIN_SCK =   {GPIO::Port::A, 29, GPIO::Periph::A};
+    GPIO::Pin PIN_NPCS0 = {GPIO::Port::A, 30, GPIO::Periph::A};
+    GPIO::Pin PIN_NPCS1 = {GPIO::Port::A, 31, GPIO::Periph::A};
     GPIO::Pin PIN_NPCS2 = {GPIO::Port::A, 14, GPIO::Periph::C};
     GPIO::Pin PIN_NPCS3 = {GPIO::Port::A, 15, GPIO::Periph::C};
 
     // Alternatives for MISO
     //const GPIO::Pin PIN_MISO =  {GPIO::Port::A,  3, GPIO::Periph::B};
-    //const GPIO::Pin PIN_MISO =  {GPIO::Port::A, 27, GPIO::Periph::A};
+    //const GPIO::Pin PIN_MISO =  {GPIO::Port::A, 21, GPIO::Periph::A};
     //const GPIO::Pin PIN_MISO =  {GPIO::Port::B, 14, GPIO::Periph::B};
 
     // Alternatives for MOSI
-    //const GPIO::Pin PIN_MOSI =  {GPIO::Port::A, 28, GPIO::Periph::A};
+    //const GPIO::Pin PIN_MOSI =  {GPIO::Port::A, 22, GPIO::Periph::A};
     //const GPIO::Pin PIN_MOSI =  {GPIO::Port::B, 15, GPIO::Periph::B};
 
     // Alternatives for SCK
-    //const GPIO::Pin PIN_SCK =   {GPIO::Port::A, 29, GPIO::Periph::A};
+    //const GPIO::Pin PIN_SCK =   {GPIO::Port::A, 23, GPIO::Periph::A};
 
     // Alternatives for NPCS0
     //const GPIO::Pin PIN_NPCS0 = {GPIO::Port::A,  2, GPIO::Periph::B};
-    //const GPIO::Pin PIN_NPCS0 = {GPIO::Port::A, 30, GPIO::Periph::A};
+    //const GPIO::Pin PIN_NPCS0 = {GPIO::Port::A, 24, GPIO::Periph::A};
 
     // Alternatives for NPCS1
-    //const GPIO::Pin PIN_NPCS1 = {GPIO::Port::A, 31, GPIO::Periph::A};
+    //const GPIO::Pin PIN_NPCS1 = {GPIO::Port::A, 13, GPIO::Periph::C};
     //const GPIO::Pin PIN_NPCS1 = {GPIO::Port::B, 13, GPIO::Periph::B};
 
     // Alternatives for NPCS2
@@ -187,18 +187,18 @@ namespace TC {
 
     const uint8_t N_TC = 1;
 
-    GPIO::Pin PINS[MAX_N_TC][N_CHANNELS * N_LINES] = {
+    GPIO::Pin PINS[MAX_N_TC][N_COUNTERS_PER_TC * N_CHANNELS_PER_COUNTER] = {
         {
-            {GPIO::Port::B,  7, GPIO::Periph::D}, // TC0 A0
-            {GPIO::Port::B,  8, GPIO::Periph::D}, // TC0 B0
-            {GPIO::Port::B,  9, GPIO::Periph::D}, // TC0 A1
-            {GPIO::Port::B, 10, GPIO::Periph::D}, // TC0 B1
-            {GPIO::Port::B, 11, GPIO::Periph::D}, // TC0 A2
-            {GPIO::Port::B, 12, GPIO::Periph::D}  // TC0 B2
+            {GPIO::Port::B,  7, GPIO::Periph::D}, // TC0_0A
+            {GPIO::Port::B,  8, GPIO::Periph::D}, // TC0_0B
+            {GPIO::Port::B,  9, GPIO::Periph::D}, // TC0_1A
+            {GPIO::Port::B, 10, GPIO::Periph::D}, // TC0_1B
+            {GPIO::Port::B, 11, GPIO::Periph::D}, // TC0_2A
+            {GPIO::Port::B, 12, GPIO::Periph::D}  // TC0_2B
         }
     };
 
-    GPIO::Pin PINS_CLK[MAX_N_TC][N_CHANNELS * N_LINES] = {
+    GPIO::Pin PINS_CLK[MAX_N_TC][N_EXTERNAL_CLOCKS_PER_TC] = {
         {
             {GPIO::Port::B, 13, GPIO::Periph::D}, // TC0 CLK0
             {GPIO::Port::B, 14, GPIO::Periph::D}, // TC0 CLK1

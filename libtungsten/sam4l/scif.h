@@ -152,31 +152,37 @@ namespace SCIF {
     unsigned long getRCSYSFrequency();
 
     // RCFAST is a faster RC oscillator than RCSYS, which can operate at 4MHz, 8MHz or 12MHz
-    void enableRCFAST(RCFASTFrequency frequency, bool enabled=true);
+    void enableRCFAST(RCFASTFrequency frequency);
+    void disableRCFAST();
     unsigned long getRCFASTFrequency();
 
     // OSC0 is an external crystal oscillator, which can operate from 0.6MHz to 30MHz.
     // See datasheet §42.7.1 Oscillator 0 (OSC0) Characteristics for more details on
     // the required characteristics for this oscillator and its load capacitors.
-    void enableOSC0(unsigned long frequency, bool enabled=true);
+    void enableOSC0(unsigned long frequency);
+    void disableOSC0();
     unsigned long getOSC0Frequency();
 
     // PLL (Phase Locked Loop) is able to generate a high-frequency clock based on a
     // lower-frequency one. It is used by the USB module.
-    void enablePLL(int mul, int div, GCLKSource referenceClock=GCLKSource::RCSYS, unsigned long referenceFrequency=115000UL, bool enabled=true);
+    void enablePLL(int mul, int div, GCLKSource referenceClock=GCLKSource::RCSYS, unsigned long referenceFrequency=115000UL);
+    void disablePLL();
     unsigned long getPLLFrequency();
 
     // DFLL (Digital Frequency Locked Loop) is similar to the PLL
-    void enableDFLL(unsigned long frequency, GCLKSource referenceClock=GCLKSource::OSC32K, unsigned long referenceFrequency=32768, bool enabled=true);
+    void enableDFLL(unsigned long frequency, GCLKSource referenceClock=GCLKSource::OSC32K, unsigned long referenceFrequency=32768);
+    void disableDFLL();
     unsigned long getDFLLFrequency();
 
     // RC80M is the faster RC oscillator available, operating at 80MHz. It can power the
     // main clock if downscaled to at most 48MHz, or be used as a generic clock.
-    void enableRC80M(bool enabled=true);
+    void enableRC80M();
+    void disableRC80M();
     unsigned long getRC810MFrequency();
 
     // Generic clocks
-    void enableGenericClock(GCLKChannel channel, GCLKSource source, bool output=true, uint32_t divider=0, bool enabled=true);
+    void enableGenericClock(GCLKChannel channel, GCLKSource source, bool output=false, uint32_t divider=0);
+    void disableGenericClock(GCLKChannel channel);
 
     // Set the pins used for signal lines
     void setPin(PinFunction function, int channel, GPIO::Pin pin);

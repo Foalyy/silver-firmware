@@ -96,6 +96,51 @@ namespace Core {
         WDT::enable(delayMs, WDT::Unit::MILLISECONDS);
     }
 
+    // Get the chip's package type
+    Package package() {
+        bool ext = ((*(volatile uint32_t*) CHIPID_CIDR) >> CHIPID_CIDR_EXT) & 1;
+        if (ext) {
+            uint8_t pck = ((*(volatile uint32_t*) CHIPID_EXID) >> CHIPID_EXID_PACKAGE) & 0b111;
+            if (pck == CHIPID_EXID_PACKAGE_48) {
+                return Package::PCK_48PIN;
+            } else if (pck == CHIPID_EXID_PACKAGE_64) {
+                return Package::PCK_64PIN;
+            } else if (pck == CHIPID_EXID_PACKAGE_100) {
+                return Package::PCK_100PIN;
+            }
+        }
+        return Package::UNKNOWN;
+    }
+
+    // Get the chip's RAM size
+    RAMSize ramSize() {
+        uint8_t sramsiz = ((*(volatile uint32_t*) CHIPID_CIDR) >> CHIPID_CIDR_SRAMSIZ) & 0b1111;
+        if (sramsiz == CHIPID_CIDR_SRAMSIZ_32K) {
+            return RAMSize::RAM_32K;
+        } else if (sramsiz == CHIPID_CIDR_SRAMSIZ_64K) {
+            return RAMSize::RAM_64K;
+        }
+        return RAMSize::UNKNOWN;
+    }
+
+    // Get the chip's Flash size
+    FlashSize flashSize() {
+        uint8_t nvpsiz = ((*(volatile uint32_t*) CHIPID_CIDR) >> CHIPID_CIDR_NVPSIZ) & 0b1111;
+        if (nvpsiz == CHIPID_CIDR_NVPSIZ_128K) {
+            return FlashSize::FLASH_128K;
+        } else if (nvpsiz == CHIPID_CIDR_NVPSIZ_256K) {
+            return FlashSize::FLASH_256K;
+        } else if (nvpsiz == CHIPID_CIDR_NVPSIZ_512K) {
+            return FlashSize::FLASH_512K;
+        }
+        return FlashSize::UNKNOWN;
+    }
+
+    // Copy the 120-bit unique serial number of the chip into the user buffer
+    void serialNumber(uint8_t* sn) {
+        memcpy(sn, (uint32_t*)SERIAL_NUMBER_ADDR, SERIAL_NUMBER_LENGTH);
+    }
+
     // Set the handler for the specified exception
     void setExceptionHandler(Exception exception, void (*handler)()) {
         _isrVector[static_cast<int>(exception)] = (uint32_t)handler;
@@ -203,7 +248,7 @@ namespace Core {
 
             // Enable an alarm to wake up the chip after a specified
             // amount of time
-            AST::enableAlarm(length, true, nullptr);
+            AST::enableAlarm(length);
         }
 
         // Sleep until a known event happens

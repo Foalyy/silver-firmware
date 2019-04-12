@@ -15,6 +15,10 @@
 // as another microcontroller or a button) and/or a timeout. Most of the behaviour can be customized
 // to your liking.
 
+const GPIO::Pin PIN_BTN_PW = GPIO::PB14;
+const GPIO::Pin PIN_PW_EN = GPIO::PB15;
+const int TURNOFF_DELAY = 1000;
+
 
 // USB request codes (Host -> Device)
 enum class Request {
@@ -102,12 +106,22 @@ int main() {
     if (MODE_INPUT) {
         GPIO::init();
         GPIO::enableInput(INPUT_PIN, INPUT_PIN_PULLING);
+
         // Wait for a few cycles to let the pullup the time to raise the line
         for (int i = 0; i < 1000; i++) {
             __asm__("nop");
         }
-        if (GPIO::get(INPUT_PIN) == INPUT_PIN_STATE) {
-            enterBootloader = true;
+
+        // Make sure the button is pressed for the duration of the delay
+        enterBootloader = true;
+        for (int i = 0; i < 5000; i++) {
+            if (GPIO::get(INPUT_PIN) != INPUT_PIN_STATE) {
+                enterBootloader = false;
+                break;
+            }
+        }
+
+        if (enterBootloader) {
             _activeMode = Mode::INPUT;
         }
     }
@@ -128,12 +142,18 @@ int main() {
     
 
     if (enterBootloader) {
+        // Assert the PW_EN pin to maintain power after the power switch is released
+        GPIO::enableOutput(PIN_PW_EN, GPIO::HIGH);
+
         // Init the basic core systems
         Core::init();
 
         // Set main clock to the 12MHz RC oscillator
         SCIF::enableRCFAST(SCIF::RCFASTFrequency::RCFAST_12MHZ);
         PM::setMainClockSource(PM::MainClockSource::RCFAST);
+
+        // Enable the power button input to check for a turn-off request
+        GPIO::enableInput(PIN_BTN_PW);
 
         // Enable serial port
         if (CHANNEL_USART_ENABLED) {
@@ -173,7 +193,30 @@ int main() {
         Core::Time lastTimeLedToggled = 0;
         GPIO::PinState ledState = !LED_POLARITY;
         Core::Time lastUSARTActivity = 0;
+        Core::Time tBtnPwChecked = 0;
+        Core::Time tBtnPwPressed = 0;
+        bool lastBtnPw = true;
         while (!_exitBootloader) {
+            // If the power button is pressed, release the PW_EN pin to turn off the device
+            Core::Time t = Core::time();
+            if (t >= tBtnPwChecked + 100) {
+                tBtnPwChecked = t;
+                bool btnPw = GPIO::get(PIN_BTN_PW);
+                if (!lastBtnPw && btnPw) {
+                    // Button pressed
+                    tBtnPwPressed = Core::time();
+                } else if (!btnPw) {
+                    // Button released
+                    tBtnPwPressed = 0;
+                }
+                if (tBtnPwPressed > 0 && Core::time() - tBtnPwPressed >= TURNOFF_DELAY) {
+                    // Shutdown
+                    GPIO::set(PIN_PW_EN, GPIO::LOW);
+                    while (true);
+                }
+                lastBtnPw = btnPw;
+            }
+
             // Blink rapidly
             if (LED_BL_ENABLED && Core::time() > lastTimeLedToggled + (_connected ? LED_BL_BLINK_DELAY_CONNECTED : LED_BL_BLINK_DELAY_STANDBY)) {
                 ledState = !ledState;

@@ -33,17 +33,24 @@ namespace DAC {
     const uint32_t WPMR_WPEN = 0;
     const uint32_t WPMR_WPKEY = 0x444143 << 8;
 
+    enum class Interrupt {
+        RELOAD_EMPTY,
+        TRANSFER_FINISHED
+    };
+
 
     // Module API
     void enable();
     void disable();
     void write(uint16_t value); // 0 <= value <= 1023
-    void start(uint16_t* buffer, int n);
+    void start(uint16_t* buffer, int n, bool repeat=false);
     void reload(uint16_t* buffer, int n);
     void stop();
     bool setFrequency(unsigned long frequency);
     bool isFinished();
     bool isReloadEmpty();
+    void enableInterrupt(void (*handler)(), Interrupt interrupt=Interrupt::TRANSFER_FINISHED);
+    void disableInterrupt(Interrupt interrupt=Interrupt::TRANSFER_FINISHED);
     void setPin(GPIO::Pin pin);
 
 }

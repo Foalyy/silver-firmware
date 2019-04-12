@@ -21,7 +21,8 @@ namespace USB {
     // Bank for EP0
     // This must be large enough to store the whole configuration descriptor :
     // 9 (config desc size) + 9 (iface desc size) + 8 (N_EP_MAX) * 7 (ep desc size) = 74 bytes max
-    const int BANK_EP0_SIZE = 128;
+    // and must be a multiple of the endpoint size (64)
+    const int BANK_EP0_SIZE = 512;
     uint8_t _bankEP0[BANK_EP0_SIZE];
 
     // Struct where the parameters of the last Setup request are stored
@@ -56,7 +57,7 @@ namespace USB {
         .bDescriptorType = 0x02,
         .wTotalLength = 18,
         .bNumInterfaces = 1,
-        .bConfigurationValue = 0,
+        .bConfigurationValue = 1,
         .iConfiguration = 0,
         .bmAttributes = 0xA0, // TODO : bus power settings
         .bMaxPower = 150 // In units of 2mA, therefore 300mA
@@ -102,6 +103,7 @@ namespace USB {
             .bString = DEFAULT_SERIALNUMBER
         }
     };
+    char16_t _customStringDescriptors[static_cast<int>(StringDescriptors::NUMBER)][MAX_STRING_DESCRIPTOR_SIZE];
 
     extern uint8_t INTERRUPT_PRIORITY;
 
@@ -179,6 +181,22 @@ namespace USB {
         Core::enableInterrupt(Core::Interrupt::USBC, INTERRUPT_PRIORITY);
     }
 
+    void setStringDescriptor(StringDescriptors descriptor, const char* string, int size) {
+        if (size > MAX_STRING_DESCRIPTOR_SIZE) {
+            size = MAX_STRING_DESCRIPTOR_SIZE;
+        }
+        char16_t* customString = _customStringDescriptors[static_cast<int>(descriptor)];
+        for (int i = 0; i < size; i++) {
+            if (string[i] == 0) {
+                size = i;
+                break;
+            }
+            customString[i] = string[i];
+        }
+        _stringDescriptors[static_cast<int>(descriptor)].bLength = 2 * size + 2;
+        _stringDescriptors[static_cast<int>(descriptor)].bString = customString;
+    }
+
 
     // Initialize an endpoint
     Endpoint newEndpoint(EPType type, EPDir direction, EPBanks nBanks, EPSize size, uint8_t* bank0, uint8_t* bank1) {
@@ -219,7 +237,7 @@ namespace USB {
             ep->descriptor.bEndpointAddress = n | ((direction == EPDir::IN ? 1 : 0) << 7);
             ep->descriptor.bmAttributes = static_cast<int>(type);
             ep->descriptor.wMaxPacketSize = EP_SIZES[static_cast<int>(size)];
-            ep->descriptor.bInterval = 0;
+            ep->descriptor.bInterval = 10;
 
             // Set up descriptor for bank0
             //memset(bank0, 0, EP_SIZES[static_cast<int>(size)]);
@@ -390,10 +408,12 @@ namespace USB {
                     if (ep->handlers[static_cast<int>(EPHandlerType::IN)] != nullptr) {
                         bytesToSend = ep->handlers[static_cast<int>(EPHandlerType::IN)](0);
                     }
-                    _epRAMDescriptors[i * EP_DESCRIPTOR_SIZE + EP_PCKSIZE] = bytesToSend;
+                    _epRAMDescriptors[i * EP_DESCRIPTOR_SIZE + EP_PCKSIZE] = bytesToSend & PCKSIZE_BYTE_COUNT_MASK;
+                    // Multi-packet mode is automatically enabled if BYTE_COUNT (ie bytesToSend) is larger than 
+                    // the endpoint size (UECFG.EPSIZE)
 
                     // Enable AUTO_ZLP
-                    _epRAMDescriptors[i * EP_DESCRIPTOR_SIZE + EP_PCKSIZE] |= 1 << PCKSIZE_AUTO_ZLP;
+                    //_epRAMDescriptors[i * EP_DESCRIPTOR_SIZE + EP_PCKSIZE] |= 1 << PCKSIZE_AUTO_ZLP;
 
                     // Clear interrupt (this will send the packet for a Control endpoint)
                     (*(volatile uint32_t*)(USB_BASE + OFFSET_UESTA0CLR + i * 4))
@@ -441,7 +461,7 @@ namespace USB {
     int ep0SETUPHandler(int unused) {
         // Read data received in bankEP0
         const int EP_N = 0; // Endpoint number : 0 in this handler
-        uint8_t* bank = (uint8_t*)_epRAMDescriptors[EP_N + EP_ADDR];
+        uint8_t* bank = (uint8_t*)_epRAMDescriptors[EP_N * EP_DESCRIPTOR_SIZE + EP_ADDR];
         _lastSetupPacket = {
             .bmRequestType = bank[0],
             .bRequest = bank[1],
@@ -454,10 +474,19 @@ namespace USB {
             .handled = false
         };
 
+        // Kill any pending IN transfer
+        abortINTransfer(0);
+
         // If this is an IN or No Data transfer
         if (_lastSetupPacket.direction == EPDir::IN || _lastSetupPacket.wLength == 0) {
             // Enable the IN interrupt to answer this request (or ACK it with a ZLP for a No Data transfer)
             enableINInterrupt(0);
+        } else { // OUT
+            // Configure the MULTI_PACKET_SIZE to allow multi-packet mode for OUT transfers
+            _epRAMDescriptors[EP_N * EP_DESCRIPTOR_SIZE + EP_PCKSIZE] = (BANK_EP0_SIZE << PCKSIZE_MULTI_PACKET_SIZE) & PCKSIZE_MULTI_PACKET_SIZE_MASK;
+
+            // Disable the IN interrupt to allow the OUT handler to be called
+            disableINInterrupt(0);
         }
 
         // Mark that a SETUP packet has been received
@@ -477,7 +506,7 @@ namespace USB {
 
                 // GET_DESCRIPTOR standard request
                 if (_lastSetupPacket.bRequest == USBREQ_GET_DESCRIPTOR) {
-                    uint8_t* bank = (uint8_t*)_epRAMDescriptors[EP_N + EP_ADDR];
+                    uint8_t* bank = (uint8_t*)_epRAMDescriptors[EP_N * EP_DESCRIPTOR_SIZE + EP_ADDR];
 
                     // Select descriptor to send
                     const uint8_t descriptorType = _lastSetupPacket.wValue >> 8;
@@ -608,6 +637,9 @@ namespace USB {
                 // Call user handler if this is a IN or No Data request. For an OUT request with data,
                 // the user handler will be called by ep0OUTHandler() when the data has been received
                 if (_controlHandler != nullptr) {
+                    // Make sure the IN handler will not be called again when the IN response is sent
+                    disableINInterrupt(0);
+
                     if (_lastSetupPacket.direction == EPDir::IN || _lastSetupPacket.wLength == 0) {
                         int bytesToSend = _controlHandler(_lastSetupPacket, _bankEP0, _lastSetupPacket.wLength);
                         return min(_lastSetupPacket.wLength, bytesToSend);
@@ -642,7 +674,7 @@ namespace USB {
         } else {
             // This is an OUT packet containing data
             if (_controlHandler != nullptr) {
-                int size = _epRAMDescriptors[EP_N + EP_PCKSIZE] & PCKSIZE_BYTE_COUNT_MASK;
+                int size = _epRAMDescriptors[EP_N * EP_DESCRIPTOR_SIZE + EP_PCKSIZE] & PCKSIZE_BYTE_COUNT_MASK;
                 _controlHandler(_lastSetupPacket, _bankEP0, size);
             }
 
@@ -670,6 +702,11 @@ namespace USB {
     // Clear the bank of the specified endpoint. This is useful if the bank data was prepared
     // by an IN handler, but no IN packet was sent by the host yet, and this data is now obsolete
     void abortINTransfer(Endpoint endpointNumber) {
+        // Disable the IN interrupt
+        disableINInterrupt(endpointNumber);
+
+        _epRAMDescriptors[endpointNumber * EP_DESCRIPTOR_SIZE + EP_PCKSIZE] = 0;
+        
         // Kill the bank
         (*(volatile uint32_t*)(USB_BASE + OFFSET_UECON0SET + endpointNumber * 4))
             = 1 << UECON_KILLBK;

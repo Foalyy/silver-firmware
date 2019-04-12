@@ -27,13 +27,20 @@ namespace OLED {
     const uint8_t CMD_COM_SCAN_DIRECTION_NORMAL = 0xC0;
     const uint8_t CMD_COM_SCAN_DIRECTION_INVERT = 0xC8;
 
-    void initScreen(SPI::Slave spi, GPIO::Pin pinDC, GPIO::Pin pinRES);
+    enum class Rotation {
+        R0,
+        R90,
+        R180,
+        R270,
+    };
+
+    void initScreen(SPI::Peripheral spi, GPIO::Pin pinDC, GPIO::Pin pinRES);
     void enable();
     void disable();
     void setContrast(uint8_t contrast);
     void sendCommand(uint8_t command);
     void refresh();
-    void setScreenInverted(bool inverted=true);
+    void setColorInverted(bool inverted=true);
     void clear();
     void clear(unsigned int x, unsigned int y, unsigned int width, unsigned int height);
     void setPixel(unsigned int x, unsigned int y, bool on=true);
@@ -55,6 +62,8 @@ namespace OLED {
     void printLarge(char character);
     void printLarge(unsigned int x, unsigned int y, char character);
     void printLarge(unsigned int x, unsigned int y, const Font::Char16 c);
+    void printXLarge(unsigned int x, unsigned int y, const Font::Char32 c);
+    void printXXLarge(unsigned int x, unsigned int y, const Font::Char64 c);
     void progressbar(unsigned int x, unsigned int y, unsigned int width, unsigned int height, unsigned char percent);
     void button(unsigned int x, unsigned int y, unsigned int width, unsigned int height, const char* label, bool selected=false, bool pressed=false, bool arrowLeft=false, bool arrowRight=false);
     void checkbox(unsigned int x, unsigned int y, unsigned int width, unsigned int height, const char* label, bool selected, bool pressed, bool checked);
@@ -66,7 +75,7 @@ namespace OLED {
     void moveCursorY(unsigned int y);
     void setSize(Font::Size size);
     void setInverted(bool inverted);
-    void setUpsideDown(bool upsideDown);
+    void setRotation(Rotation rotation);
     unsigned int getFontHeight();
     unsigned int getFontHeight(Font::Size size);
     unsigned int getFontWidth();

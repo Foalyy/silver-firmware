@@ -120,14 +120,19 @@ namespace PM {
         enablePeripheralClock(peripheral, false);
     }
 
-    void enablePBADivClock(uint8_t bit) {
+    void enablePBADivClock(uint8_t pow) {
         // Unlock the selected register, which is locked by default as a safety mesure
         (*(volatile uint32_t*)(BASE + OFFSET_UNLOCK))
                 = UNLOCK_KEY                // KEY : Magic word (see datasheet)
                 | OFFSET_PBADIVMASK;        // ADDR : unlock PBADIVMASK
 
+        // Check that the power of two selected is in range
+        if (pow < 1 || pow > 7) {
+            return;
+        }
+
         // Unmask the corresponding divided clock
-        (*(volatile uint32_t*)(BASE + OFFSET_PBADIVMASK)) |= 1 << bit;
+        (*(volatile uint32_t*)(BASE + OFFSET_PBADIVMASK)) |= 1 << (pow - 1);
     }
 
 

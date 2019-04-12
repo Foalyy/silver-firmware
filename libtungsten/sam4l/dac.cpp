@@ -33,7 +33,7 @@ namespace DAC {
             | 1 << MR_DACEN         // DACEN : enable DAC
             | 0 << MR_WORD          // WORD : half-word transfer
             | 100 << MR_STARTUP     // STARTUP : startup time ~12µs
-            | 1000 << MR_CLKDIV;    // CLKDIV : clock divider for internal trigger
+            | 0 << MR_CLKDIV;    // CLKDIV : clock divider for internal trigger
 
         // WPMR (Write Protect Mode Register) : lock the MR register
         (*(volatile uint32_t*)(DAC_BASE + OFFSET_WPMR))
@@ -77,7 +77,7 @@ namespace DAC {
         (*(volatile uint32_t*)(DAC_BASE + OFFSET_CDR)) = value;
     }
 
-    void start(uint16_t* buffer, int n) {
+    void start(uint16_t* buffer, int n, bool repeat) {
         // Enable the DAC controller if it is not already
         if (!_enabled) {
             enable();
@@ -86,29 +86,70 @@ namespace DAC {
         // Stop any previous operation
         DMA::stopChannel(_dmaChannel);
 
-        // Start a new operation
-        DMA::startChannel(_dmaChannel, (uint32_t)buffer, n);
+        if (!repeat) {
+            // Disable the ring mode of the DMA channel
+            DMA::disableRing(_dmaChannel);
+
+            // Start a new operation
+            DMA::startChannel(_dmaChannel, (uint32_t)buffer, n);
+
+        } else {
+            // Enable the ring mode of the DMA channel
+            DMA::enableRing(_dmaChannel);
+
+            // Start a new operation
+            DMA::startChannel(_dmaChannel, (uint32_t)buffer, n);
+
+            // Reload the DMA channel with the same buffer, which
+            // will be repeated indefinitely
+            DMA::reloadChannel(_dmaChannel, (uint32_t)buffer, n);
+        }
     }
 
     void reload(uint16_t* buffer, int n) {
+        // Enable the DAC controller if it is not already
+        if (!_enabled) {
+            enable();
+        }
+
         // Reload the DMA
         DMA::reloadChannel(_dmaChannel, (uint32_t)buffer, n);
     }
 
     void stop() {
+        // Enable the DAC controller if it is not already
+        if (!_enabled) {
+            enable();
+        }
+        
         // Stop the DMA
         DMA::stopChannel(_dmaChannel);
     }
 
     bool isFinished() {
+        // Enable the DAC controller if it is not already
+        if (!_enabled) {
+            enable();
+        }
+        
         return DMA::isFinished(_dmaChannel);
     }
 
     bool isReloadEmpty() {
+        // Enable the DAC controller if it is not already
+        if (!_enabled) {
+            enable();
+        }
+        
         return DMA::isReloadEmpty(_dmaChannel);
     }
 
     bool setFrequency(unsigned long frequency) {
+        // Enable the DAC controller if it is not already
+        if (!_enabled) {
+            enable();
+        }
+
         // Compute the clock divider for the internal trigger
         if (frequency == 0) {
             return false;
@@ -135,6 +176,26 @@ namespace DAC {
             | 1 << WPMR_WPEN;
 
         return true;
+    }
+
+    void enableInterrupt(void (*handler)(), Interrupt interrupt) {
+        // Enable the DAC controller if it is not already
+        if (!_enabled) {
+            enable();
+        }
+        
+        // Enable the interrupt directly in the DMA
+        DMA::enableInterrupt(_dmaChannel, handler, static_cast<DMA::Interrupt>(interrupt));
+    }
+
+    void disableInterrupt(Interrupt interrupt) {
+        // Enable the DAC controller if it is not already
+        if (!_enabled) {
+            enable();
+        }
+        
+        // Disable the interrupt in the DMA
+        DMA::disableInterrupt(_dmaChannel, static_cast<DMA::Interrupt>(interrupt));
     }
 
     void setPin(GPIO::Pin pin) {

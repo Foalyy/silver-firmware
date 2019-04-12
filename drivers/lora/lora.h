@@ -97,7 +97,7 @@ namespace LoRa {
     };
 
 
-    bool init(uint32_t frequency=DEFAULT_FREQUENCY, SPI::Slave slave=0);
+    bool init(uint32_t frequency=DEFAULT_FREQUENCY, SPI::Peripheral slave=0);
     void disable();
     void enable();
     void setMode(Mode mode);

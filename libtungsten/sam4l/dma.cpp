@@ -184,6 +184,17 @@ namespace DMA {
         return (*(volatile uint32_t*)(BASE + channel * CHANNEL_REG_SIZE + OFFSET_TCRR)) == 0;
     }
 
+    void enableRing(int channel) {
+        // MR : set the RING bit to keep reloading the channel with the same buffer
+        (*(volatile uint32_t*)(BASE + channel * CHANNEL_REG_SIZE + OFFSET_MR)) |= 1 << MR_RING;
+    }
+
+    void disableRing(int channel) {
+        // MR : reset the RING bit
+        (*(volatile uint32_t*)(BASE + channel * CHANNEL_REG_SIZE + OFFSET_MR)) &= ~(uint32_t)(1 << MR_RING);
+    }
+
+
     void interruptHandlerWrapper() {
         // Get the channel number through the current interrupt number
         int channel = static_cast<int>(Core::currentInterrupt()) - static_cast<int>(Core::Interrupt::DMA0);
@@ -203,5 +214,4 @@ namespace DMA {
             }
         }
     }
-
 }

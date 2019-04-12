@@ -104,6 +104,8 @@ namespace DMA {
     bool isEnabled(int channel);
     bool isFinished(int channel);
     bool isReloadEmpty(int channel);
+    void enableRing(int channel);
+    void disableRing(int channel);
 
 }
 

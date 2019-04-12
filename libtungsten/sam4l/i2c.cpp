@@ -765,8 +765,12 @@ namespace I2C {
         GPIO::disablePeripheral(PINS_SCL[static_cast<int>(port)]);
 
         // Stop the DMA channels
-        DMA::stopChannel(p->txDMAChannel);
-        DMA::stopChannel(p->rxDMAChannel);
+        if (p->txDMAChannel > -1) {
+            DMA::stopChannel(p->txDMAChannel);
+        }
+        if (p->rxDMAChannel > -1) {
+            DMA::stopChannel(p->rxDMAChannel);
+        }
 
         if (p->mode == Mode::MASTER) {
             // Disable the interrupt in the NVIC
@@ -779,16 +783,16 @@ namespace I2C {
             // Disable the clock
             PM::disablePeripheralClock(PM_CLK_M[static_cast<int>(port)]);
 
-        } else if (p->mode == Mode::MASTER) {
+        } else if (p->mode == Mode::SLAVE) {
             // Disable the interrupt in the NVIC
             Core::Interrupt interruptChannel = _interruptChannelsSlave[static_cast<int>(port)];
             Core::disableInterrupt(interruptChannel);
 
-            // CR (Control Register) : disable the master interface
+            // CR (Control Register) : disable the slave interface
             (*(volatile uint32_t*)(REG_BASE + OFFSET_S_CR)) = 0;
 
             // Disable the clock
-            PM::disablePeripheralClock(PM_CLK_M[static_cast<int>(port)]);
+            PM::disablePeripheralClock(PM_CLK_S[static_cast<int>(port)]);
         }
 
         p->mode = Mode::NONE;

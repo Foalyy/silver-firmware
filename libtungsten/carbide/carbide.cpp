@@ -28,7 +28,9 @@ namespace Carbide {
         return 0;
     }
 
+    // Handler called when an error of Warning level is triggered
     void warningHandler(Error::Module module, int userModule, Error::Code code) {
+        // Blink the red LED three times and resume operation
         setLedR(false);
         Core::sleep(100);
         setLedR();
@@ -41,7 +43,9 @@ namespace Carbide {
         Core::sleep(100);
     }
 
+    // Handler called when an error of Critical level is triggered
     void criticalHandler(Error::Module module, int userModule, Error::Code code) {
+        // Stop the execution and blink the red LED rapidly
         while (1) {
             setLedR();
             Core::sleep(100);

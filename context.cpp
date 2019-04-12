@@ -29,27 +29,32 @@ bool Context::_skipDelay = false;
 void Context::read() {
     uint32_t pageBuffer[Flash::FLASH_PAGE_SIZE_WORDS];
     Flash::readUserPage(pageBuffer);
-    // First word (0) is reserved
-    int i = 1;
-    _triggerSync = static_cast<bool>(pageBuffer[i++]);
-    _delayMs = static_cast<unsigned int>(pageBuffer[i++]);
-    _delaySync = static_cast<bool>(pageBuffer[i++]);
-    _intervalNShots = static_cast<int>(pageBuffer[i++]);
-    _intervalDelayMs = static_cast<unsigned int>(pageBuffer[i++]);
-    _intervalSync = static_cast<bool>(pageBuffer[i++]);
-    _inputMode = static_cast<int>(pageBuffer[i++]);
-    _inputSync = static_cast<bool>(pageBuffer[i++]);
-    _settingsFocusDurationMs = static_cast<unsigned int>(pageBuffer[i++]);
-    _settingsTriggerDurationMs = static_cast<unsigned int>(pageBuffer[i++]);
-    _settingsSync = static_cast<bool>(pageBuffer[i++]);
-    _syncChannel = static_cast<int>(pageBuffer[i++]);
+    // First two words are reserved
+    int i = 2;
+    if (pageBuffer[i] == 0xFFFFFFFF) {
+        // Empty config, initialize it by saving the default config
+        save();
+    } else {
+        _triggerSync = static_cast<bool>(pageBuffer[i++]);
+        _delayMs = static_cast<unsigned int>(pageBuffer[i++]);
+        _delaySync = static_cast<bool>(pageBuffer[i++]);
+        _intervalNShots = static_cast<int>(pageBuffer[i++]);
+        _intervalDelayMs = static_cast<unsigned int>(pageBuffer[i++]);
+        _intervalSync = static_cast<bool>(pageBuffer[i++]);
+        _inputMode = static_cast<int>(pageBuffer[i++]);
+        _inputSync = static_cast<bool>(pageBuffer[i++]);
+        _settingsFocusDurationMs = static_cast<unsigned int>(pageBuffer[i++]);
+        _settingsTriggerDurationMs = static_cast<unsigned int>(pageBuffer[i++]);
+        _settingsSync = static_cast<bool>(pageBuffer[i++]);
+        _syncChannel = static_cast<int>(pageBuffer[i++]);
+    }
 }
 
 void Context::save() {
     uint32_t pageBuffer[Flash::FLASH_PAGE_SIZE_WORDS];
     Flash::readUserPage(pageBuffer);
-    // First word (0) is reserved
-    int i = 1;
+    // First two words are reserved
+    int i = 2;
     pageBuffer[i++] = static_cast<uint32_t>(_triggerSync);
     pageBuffer[i++] = static_cast<uint32_t>(_delayMs);
     pageBuffer[i++] = static_cast<uint32_t>(_delaySync);

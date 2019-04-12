@@ -126,9 +126,9 @@ namespace USB {
     const int EP_ADDR = 0;
     const int EP_PCKSIZE = 1;
     const int PCKSIZE_BYTE_COUNT = 0;
-    const int PCKSIZE_BYTE_COUNT_MASK = 0x007F;
+    const int PCKSIZE_BYTE_COUNT_MASK = 0x00007FFFF;
     const int PCKSIZE_MULTI_PACKET_SIZE = 16;
-    const int PCKSIZE_MULTI_PACKET_SIZE_MASK = 0x7F00;
+    const int PCKSIZE_MULTI_PACKET_SIZE_MASK = 0x7FFF0000;
     const int PCKSIZE_AUTO_ZLP = 31;
     const int EP_CTR_STA = 2;
     const int CTR_STA_STALLRQ_NEXT = 0;
@@ -228,6 +228,9 @@ namespace USB {
         uint8_t bDescriptorType;
         const char16_t* bString;
     };
+    extern DeviceDescriptor _deviceDescriptor;
+    extern ConfigurationDescriptor _configurationDescriptor;
+    extern InterfaceDescriptor _interfaceDescriptor;
 
     // String descriptors
     enum class StringDescriptors {
@@ -237,9 +240,12 @@ namespace USB {
 
         NUMBER // Number of string descriptors
     };
+    const int MAX_STRING_DESCRIPTOR_SIZE = 30;
     const char16_t DEFAULT_IMANUFACTURER[] = u"libtungsten";
     const char16_t DEFAULT_IPRODUCT[] = u"Carbide";
     const char16_t DEFAULT_SERIALNUMBER[] = u"beta";
+    extern String0Descriptor _string0Descriptor;
+    extern StringDescriptor _stringDescriptors[];
 
     // Default descriptor ids
     const uint16_t DEFAULT_VENDOR_ID = 0x03eb; // Atmel Corp vendor ID
@@ -257,20 +263,20 @@ namespace USB {
         SIZE16 = 0b001,
         SIZE32 = 0b010,
         SIZE64 = 0b011,
-        //SIZE128 = 0b100, // Unavailable for low- and full-speed
-        //SIZE256 = 0b101,
-        //SIZE512 = 0b110,
-        //SIZE1024 = 0b111
+        SIZE128 = 0b100, // /!\ EP sizes above 64 are only possible for
+        SIZE256 = 0b101, // isochronous transfers in low- and full-speed,
+        SIZE512 = 0b110, // according to the USB specification
+        SIZE1024 = 0b111
     };
     const int EP_SIZES[] = {
         8,
         16,
         32,
         64,
-        //128, // Unavailable for low- and full-speed
-        //256,
-        //512,
-        //1024
+        128,
+        256,
+        512,
+        1024
     };
     enum class EPDir {
         OUT = 0,
@@ -302,6 +308,7 @@ namespace USB {
     };
     using Endpoint = int; // Helper type to manage endpoints, created by newEndpoint()
     const Endpoint EP_ERROR = -1;
+    extern const int BANK_EP0_SIZE;
 
 
     // Packets
@@ -336,6 +343,7 @@ namespace USB {
 
     // Module API
     void initDevice(uint16_t vendorId=DEFAULT_VENDOR_ID, uint16_t productId=DEFAULT_PRODUCT_ID, uint16_t deviceRevision=DEFAULT_DEVICE_REVISION);
+    void setStringDescriptor(StringDescriptors descriptor, const char* string, int size);
     Endpoint newEndpoint(EPType type, EPDir direction, EPBanks nBanks, EPSize size, uint8_t* bank0, uint8_t* bank1=nullptr);
     void setConnectedHandler(void (*handler)());
     void setDisconnectedHandler(void (*handler)());

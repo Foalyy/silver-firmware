@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include "gpio.h"
+#include "error.h"
 
 // Timers/Counters
 // This module manages timers, which are counting registers that are automatically
@@ -18,40 +19,40 @@ namespace TC {
 
 
     // Registers addresses
-    const uint32_t OFFSET_CHANNEL_SIZE = 0x040;
-    const uint32_t OFFSET_CCR0 =     0x000; // Channel 0 Control Register
-    const uint32_t OFFSET_CMR0 =     0x004; // Channel 0 Mode Register
-    const uint32_t OFFSET_SMMR0 =    0x008; // Channel 0 Stepper Motor Mode Register
-    const uint32_t OFFSET_CV0 =      0x010; // Channel 0 Counter Value
-    const uint32_t OFFSET_RA0 =      0x014; // Channel 0 Register A
-    const uint32_t OFFSET_RB0 =      0x018; // Channel 0 Register B
-    const uint32_t OFFSET_RC0 =      0x01C; // Channel 0 Register C
-    const uint32_t OFFSET_SR0 =      0x020; // Channel 0 Status Register
+    const uint32_t OFFSET_COUNTER_SIZE = 0x040;
+    const uint32_t OFFSET_CCR0 =     0x000; // Counter 0 Control Register
+    const uint32_t OFFSET_CMR0 =     0x004; // Counter 0 Mode Register
+    const uint32_t OFFSET_SMMR0 =    0x008; // Counter 0 Stepper Motor Mode Register
+    const uint32_t OFFSET_CV0 =      0x010; // Counter 0 Counter Value
+    const uint32_t OFFSET_RA0 =      0x014; // Counter 0 Register A
+    const uint32_t OFFSET_RB0 =      0x018; // Counter 0 Register B
+    const uint32_t OFFSET_RC0 =      0x01C; // Counter 0 Register C
+    const uint32_t OFFSET_SR0 =      0x020; // Counter 0 Status Register
     const uint32_t OFFSET_IER0 =     0x024; // Interrupt Enable Register
-    const uint32_t OFFSET_IDR0 =     0x028; // Channel 0 Interrupt Disable Register
-    const uint32_t OFFSET_IMR0 =     0x02C; // Channel 0 Interrupt Mask Register
-    const uint32_t OFFSET_CCR1 =     0x040; // Channel 1 Control Register
-    const uint32_t OFFSET_CMR1 =     0x044; // Channel 1 Mode Register
-    const uint32_t OFFSET_SMMR1 =    0x048; // Channel 1 Stepper Motor Mode Register
-    const uint32_t OFFSET_CV1 =      0x050; // Channel 1 Counter Value
-    const uint32_t OFFSET_RA1 =      0x054; // Channel 1 Register A
-    const uint32_t OFFSET_RB1 =      0x058; // Channel 1 Register B
-    const uint32_t OFFSET_RC1 =      0x05C; // Channel 1 Register C
-    const uint32_t OFFSET_SR1 =      0x060; // Channel 1 Status Register
-    const uint32_t OFFSET_IER1 =     0x064; // Channel 1 Interrupt Enable Register
-    const uint32_t OFFSET_IDR1 =     0x068; // Channel 1 Interrupt Disable Register
-    const uint32_t OFFSET_IMR1 =     0x06C; // Channel 1 Interrupt Mask Register
-    const uint32_t OFFSET_CCR2 =     0x080; // Channel 2 Control Register
-    const uint32_t OFFSET_CMR2 =     0x084; // Channel 2 Mode Register
+    const uint32_t OFFSET_IDR0 =     0x028; // Counter 0 Interrupt Disable Register
+    const uint32_t OFFSET_IMR0 =     0x02C; // Counter 0 Interrupt Mask Register
+    const uint32_t OFFSET_CCR1 =     0x040; // Counter 1 Control Register
+    const uint32_t OFFSET_CMR1 =     0x044; // Counter 1 Mode Register
+    const uint32_t OFFSET_SMMR1 =    0x048; // Counter 1 Stepper Motor Mode Register
+    const uint32_t OFFSET_CV1 =      0x050; // Counter 1 Counter Value
+    const uint32_t OFFSET_RA1 =      0x054; // Counter 1 Register A
+    const uint32_t OFFSET_RB1 =      0x058; // Counter 1 Register B
+    const uint32_t OFFSET_RC1 =      0x05C; // Counter 1 Register C
+    const uint32_t OFFSET_SR1 =      0x060; // Counter 1 Status Register
+    const uint32_t OFFSET_IER1 =     0x064; // Counter 1 Interrupt Enable Register
+    const uint32_t OFFSET_IDR1 =     0x068; // Counter 1 Interrupt Disable Register
+    const uint32_t OFFSET_IMR1 =     0x06C; // Counter 1 Interrupt Mask Register
+    const uint32_t OFFSET_CCR2 =     0x080; // Counter 2 Control Register
+    const uint32_t OFFSET_CMR2 =     0x084; // Counter 2 Mode Register
     const uint32_t OFFSET_SMMR2 =    0x088; // Ch 2 Stepper Motor Mode Register
-    const uint32_t OFFSET_CV2 =      0x090; // Channel 2 Counter Value
-    const uint32_t OFFSET_RA2 =      0x094; // Channel 2 Register A
-    const uint32_t OFFSET_RB2 =      0x098; // Channel 2 Register B
-    const uint32_t OFFSET_RC2 =      0x09C; // Channel 2 Register C
-    const uint32_t OFFSET_SR2 =      0x0A0; // Channel 2 Status Register
-    const uint32_t OFFSET_IER2 =     0x0A4; // Channel 2 Interrupt Enable Register
-    const uint32_t OFFSET_IDR2 =     0x0A8; // Channel 2 Interrupt Disable Register
-    const uint32_t OFFSET_IMR2 =     0x0AC; // Channel 2 Interrupt Mask Register
+    const uint32_t OFFSET_CV2 =      0x090; // Counter 2 Counter Value
+    const uint32_t OFFSET_RA2 =      0x094; // Counter 2 Register A
+    const uint32_t OFFSET_RB2 =      0x098; // Counter 2 Register B
+    const uint32_t OFFSET_RC2 =      0x09C; // Counter 2 Register C
+    const uint32_t OFFSET_SR2 =      0x0A0; // Counter 2 Status Register
+    const uint32_t OFFSET_IER2 =     0x0A4; // Counter 2 Interrupt Enable Register
+    const uint32_t OFFSET_IDR2 =     0x0A8; // Counter 2 Interrupt Disable Register
+    const uint32_t OFFSET_IMR2 =     0x0AC; // Counter 2 Interrupt Mask Register
     const uint32_t OFFSET_BCR =      0x0C0; // Block Control Register
     const uint32_t OFFSET_BMR =      0x0C4; // Block Mode Register
     const uint32_t OFFSET_WPMR =     0x0E4; // Write Protect Mode Register
@@ -77,6 +78,13 @@ namespace TC {
     const uint32_t CMR_BCPC = 26;
     const uint32_t CMR_BEEVT = 28;
     const uint32_t CMR_BSWTRG = 30;
+    const uint32_t CMR_LDBSTOP = 6;
+    const uint32_t CMR_LDBDIS = 7;
+    const uint32_t CMR_ETRGEDG = 8;
+    const uint32_t CMR_ABETRG = 10;
+    const uint32_t CMR_CPCTRG = 14;
+    const uint32_t CMR_LDRA = 16;
+    const uint32_t CMR_LDRB = 18;
     const uint32_t CCR_CLKEN = 0;
     const uint32_t CCR_CLKDIS = 1;
     const uint32_t CCR_SWTRG = 2;
@@ -91,6 +99,7 @@ namespace TC {
     const uint32_t SR_CLKSTA = 16;
     const uint32_t SR_MTIOA = 17;
     const uint32_t SR_MTIOB = 18;
+    const uint32_t BCR_SYNC = 0;
     const uint32_t WPMR_WPEN = 0;
     const uint32_t WPMR_WPKEY = 8;
 
@@ -114,13 +123,29 @@ namespace TC {
     // and is defined in pins_sam4l_XX.cpp
     extern const uint8_t N_TC;
     const uint8_t MAX_N_TC = 2;
-    const uint8_t N_CHANNELS = 3;
-    const uint8_t N_LINES = 2;
+    const uint8_t N_COUNTERS_PER_TC = 3;
+    const uint8_t N_CHANNELS_PER_COUNTER = 2;
+    const uint8_t N_EXTERNAL_CLOCKS_PER_TC = 3;
+
+    struct Counter {
+        uint8_t tc;
+        uint8_t n;
+    };
 
     struct Channel {
-        uint8_t tc;
-        uint8_t subchannel;
+        Counter counter;
         uint8_t line;
+    };
+
+    enum class SourceClock {
+        GENERIC_CLOCK,
+        PBA_OVER_2,
+        PBA_OVER_8,
+        PBA_OVER_32,
+        PBA_OVER_128,
+        CLK0,
+        CLK1,
+        CLK2,
     };
 
     enum class PinFunction {
@@ -128,34 +153,69 @@ namespace TC {
         CLK
     };
 
-    // Quick helpers for each channel
-    const Channel TC0_A0 = {TC::TC0, TC::CH0, TC::TIOA};
-    const Channel TC0_B0 = {TC::TC0, TC::CH0, TC::TIOB};
-    const Channel TC0_A1 = {TC::TC0, TC::CH1, TC::TIOA};
-    const Channel TC0_B1 = {TC::TC0, TC::CH1, TC::TIOB};
-    const Channel TC0_A2 = {TC::TC0, TC::CH2, TC::TIOA};
-    const Channel TC0_B2 = {TC::TC0, TC::CH2, TC::TIOB};
-    const Channel TC1_A0 = {TC::TC1, TC::CH0, TC::TIOA};
-    const Channel TC1_B0 = {TC::TC1, TC::CH0, TC::TIOB};
-    const Channel TC1_A1 = {TC::TC1, TC::CH1, TC::TIOA};
-    const Channel TC1_B1 = {TC::TC1, TC::CH1, TC::TIOB};
-    const Channel TC1_A2 = {TC::TC1, TC::CH2, TC::TIOA};
-    const Channel TC1_B2 = {TC::TC1, TC::CH2, TC::TIOB};
+    // Quick helpers for each counter and channel
+    const Counter TC0_0 = {TC::TC0, TC::CH0};
+    const Channel TC0_0A = {TC::TC0, TC::CH0, TC::TIOA};
+    const Channel TC0_0B = {TC::TC0, TC::CH0, TC::TIOB};
+    const Counter TC0_1 = {TC::TC0, TC::CH1};
+    const Channel TC0_1A = {TC::TC0, TC::CH1, TC::TIOA};
+    const Channel TC0_1B = {TC::TC0, TC::CH1, TC::TIOB};
+    const Counter TC0_2 = {TC::TC0, TC::CH2};
+    const Channel TC0_2A = {TC::TC0, TC::CH2, TC::TIOA};
+    const Channel TC0_2B = {TC::TC0, TC::CH2, TC::TIOB};
+    const Counter TC1_0 = {TC::TC1, TC::CH0};
+    const Channel TC1_0A = {TC::TC1, TC::CH0, TC::TIOA};
+    const Channel TC1_0B = {TC::TC1, TC::CH0, TC::TIOB};
+    const Counter TC1_1 = {TC::TC1, TC::CH1};
+    const Channel TC1_1A = {TC::TC1, TC::CH1, TC::TIOA};
+    const Channel TC1_1B = {TC::TC1, TC::CH1, TC::TIOB};
+    const Counter TC1_2 = {TC::TC1, TC::CH2};
+    const Channel TC1_2A = {TC::TC1, TC::CH2, TC::TIOA};
+    const Channel TC1_2B = {TC::TC1, TC::CH2, TC::TIOB};
+
+    // Error codes
+    const Error::Code ERR_INVALID_TC = 0x0001;
 
 
-    // Module API
-    void init(const Channel& channel, unsigned int period=0, unsigned int highTime=0, bool output=false);
-    void setPeriod(const Channel& channel, double period);
-    void setHighTime(const Channel& channel, double highTime);
-    void setDutyCycle(const Channel& channel, int percent);
-    void enableOutput(const Channel& channel);
-    void disableOutput(const Channel& channel);
-    void setRC(const Channel& channel, uint16_t rc);
-    void setRX(const Channel& channel, uint16_t rx);
-    uint32_t getCounterValue(const Channel& channel);
-    void wait(const Channel& channel, unsigned long value, Unit unit=Unit::MILLISECONDS);
-    void execDelayed(const Channel& channel, void (*handler)(), unsigned long delay, bool repeat=false, Unit unit=Unit::MILLISECONDS);
-    void setPin(const Channel& channel, PinFunction function, GPIO::Pin pin);
+    // Simple counter mode
+    void enableSimpleCounter(Counter counter, uint16_t maxValue=0xFFFF, SourceClock sourceClock=SourceClock::PBA_OVER_8, unsigned long sourceClockFrequency=0, bool invertClock=false, bool upDown=false);
+
+    // PWM mode
+    bool enablePWM(Channel channel, float period=0, float highTime=0, bool output=true, SourceClock sourceClock=SourceClock::PBA_OVER_8, unsigned long sourceClockFrequency=0);
+    bool setPeriod(Counter counter, float period);
+    bool setHighTime(Channel channel, float highTime);
+    bool setDutyCycle(Channel channel, int percent);
+    void enableOutput(Channel channel);
+    void disableOutput(Channel channel);
+
+    // Measure mode
+    void enableMeasure(Counter counter, SourceClock sourceClock=SourceClock::PBA_OVER_8, unsigned long sourceClockFrequency=0);
+    void measure(Counter counter, bool continuous=false);
+    uint16_t measuredPeriodRaw(Counter counter);
+    unsigned long measuredPeriod(Counter counter);
+    uint16_t measuredHighTimeRaw(Counter counter);
+    unsigned long measuredHighTime(Counter counter);
+    unsigned int measuredDutyCycle(Counter counter);
+    bool isMeasureOverflow(Counter counter);
+
+    // Low-level counter functions
+    bool setRX(Channel channel, unsigned int rx);
+    bool setRC(Counter counter, unsigned int rc);
+    uint16_t counterValue(Counter counter);
+    uint16_t raValue(Counter counter);
+    uint16_t rbValue(Counter counter);
+    uint16_t rcValue(Counter counter);
+    unsigned long sourceClockFrequency(Counter counter);
+
+    // Timing functions
+    void wait(Counter counter, unsigned long delay, Unit unit=Unit::MILLISECONDS, SourceClock sourceClock=SourceClock::PBA_OVER_8, unsigned long sourceClockFrequency=0);
+    void execDelayed(Counter counter, void (*handler)(), unsigned long delay, Unit unit=Unit::MILLISECONDS, bool repeat=false, SourceClock sourceClock=SourceClock::PBA_OVER_8, unsigned long sourceClockFrequency=0);
+
+    // Functions common to all modes
+    void start(Counter counter);
+    void stop(Counter counter);
+    void sync();
+    void setPin(Channel channel, PinFunction function, GPIO::Pin pin);
 
 }
 

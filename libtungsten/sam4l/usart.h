@@ -121,7 +121,7 @@ namespace USART {
         CTS
     };
 
-    const int BUFFER_SIZE = 256;
+    const int BUFFER_SIZE = 2048;
 
 
     // Error codes

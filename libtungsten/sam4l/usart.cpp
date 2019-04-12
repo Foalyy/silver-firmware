@@ -19,7 +19,7 @@ namespace USART {
     void interruptHandlerWrapper();
 
     // Package-dependant, defined in pins_sam4l_XX.cpp
-    // Can be modified usign setPin()
+    // Can be modified using setPin()
     extern struct GPIO::Pin PINS_RX[];
     extern struct GPIO::Pin PINS_TX[];
     extern struct GPIO::Pin PINS_CTS[];
@@ -43,6 +43,8 @@ namespace USART {
     struct USART _ports[N_PORTS];
 
     int _rxDMAChannelsToPorts[DMA::N_CHANNELS_MAX];
+
+    bool _portsEnabled[N_PORTS] = {false, false, false, false};
 
 
     void enable(Port port, unsigned long baudrate, bool hardwareFlowControl, CharLength charLength, Parity parity, StopBit stopBit) {
@@ -120,9 +122,17 @@ namespace USART {
         DMA::startChannel(p->rxDMAChannel, (uint32_t)(p->rxBuffer), BUFFER_SIZE);
         //DMA::reloadChannel(p->rxDMAChannel, (uint32_t)(p->rxBuffer), BUFFER_SIZE);
         DMA::enableInterrupt(p->rxDMAChannel, &rxBufferFullHandler, DMA::Interrupt::TRANSFER_FINISHED);
+
+        _portsEnabled[static_cast<int>(port)] = true;
     }
 
     void disable(Port port) {
+        // Don't do anything if this port is not enabled
+        if (!_portsEnabled[static_cast<int>(port)]) {
+            return;
+        }
+        _portsEnabled[static_cast<int>(port)] = false;
+
         const uint32_t REG_BASE = USART_BASE + static_cast<int>(port) * USART_REG_SIZE;
         struct USART* p = &(_ports[static_cast<int>(port)]);
 

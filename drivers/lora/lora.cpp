@@ -4,7 +4,7 @@
 
 namespace LoRa {
 
-    SPI::Slave _spi = 0;
+    SPI::Peripheral _spi = 0;
     uint32_t _frequency = 0;
     Mode _mode = Mode::STANDBY;
     int _txPowerdBm = 0;
@@ -19,7 +19,7 @@ namespace LoRa {
 
 
     // Initialize the module with default settings and check it answers correctly
-    bool init(uint32_t frequency, SPI::Slave slave) {
+    bool init(uint32_t frequency, SPI::Peripheral slave) {
         _spi = slave;
 
         // Reset
@@ -29,7 +29,7 @@ namespace LoRa {
         Core::sleep(5);
 
         // Enable the SPI controller for this slave
-        SPI::enableSlave(_spi);
+        SPI::addPeripheral(_spi);
 
         // Chech that the modules answers on the bus
         uint8_t version = readRegister(REG_VERSION);
@@ -175,8 +175,8 @@ namespace LoRa {
 
         // Write payload to the FIFO
         uint8_t buffer[] = {REG_FIFO | 0x80};
-        SPI::transfer(_spi, buffer, nullptr, 1, -1, true);
-        SPI::transfer(_spi, payload, nullptr, length);
+        SPI::transfer(_spi, buffer, 1, nullptr, -1, true);
+        SPI::transfer(_spi, payload, length);
 
         // Switch to TX mode to send the payload
         setMode(Mode::TX);
@@ -244,8 +244,8 @@ namespace LoRa {
 
             // Read the data from the FIFO
             uint8_t txBuffer[1] = {REG_FIFO};
-            SPI::transfer(_spi, txBuffer, nullptr, 1, -1, true);
-            SPI::transfer(_spi, nullptr, buffer, 0, rxBytesNb);
+            SPI::transfer(_spi, txBuffer, 1, nullptr, -1, true);
+            SPI::transfer(_spi, nullptr, -1, buffer, rxBytesNb);
 
             // Clear all flags
             writeRegister(REG_IRQ_FLAGS, 0xFF);
@@ -283,7 +283,7 @@ namespace LoRa {
             (uint8_t)(reg | 0x80),
             value
         };
-        SPI::transfer(_spi, txBuffer, nullptr, 2);
+        SPI::transfer(_spi, txBuffer, 2);
     }
 
 }

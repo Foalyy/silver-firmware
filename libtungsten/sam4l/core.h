@@ -42,6 +42,12 @@ namespace Core {
     // Peripheral Debug
     const uint32_t PDBG = 0xE0042000; // Peripheral Debug Register
 
+    // ChipID and Serial number
+    const uint32_t CHIPID_CIDR = 0x400E0740;
+    const uint32_t CHIPID_EXID = 0x400E0744;
+    const uint32_t SERIAL_NUMBER_ADDR = 0x0080020C;
+    const uint32_t SERIAL_NUMBER_LENGTH = 15; // bytes
+
 
     // Subregisters
     const uint32_t SCR_SLEEPONEXIT = 1; // Enter sleep state when no interrupt is being handled
@@ -55,6 +61,20 @@ namespace Core {
     const uint32_t PDBG_WDT = 0; // Freeze WDT when Core is halted in debug mode
     const uint32_t PDBG_AST = 1; // Freeze AST when Core is halted in debug mode
     const uint32_t PDBG_PEVC = 2; // Freeze PEVX when Core is halted in debug mode
+    const uint32_t CHIPID_CIDR_NVPSIZ = 8; // Flash size
+    const uint32_t CHIPID_CIDR_SRAMSIZ = 16; // RAM size
+    const uint32_t CHIPID_CIDR_EXT = 31; // Extension flag
+    const uint32_t CHIPID_EXID_PACKAGE = 24; // Package type
+
+    // Constant values
+    const uint8_t CHIPID_CIDR_NVPSIZ_128K = 7;
+    const uint8_t CHIPID_CIDR_NVPSIZ_256K = 9;
+    const uint8_t CHIPID_CIDR_NVPSIZ_512K = 10;
+    const uint8_t CHIPID_CIDR_SRAMSIZ_32K = 10;
+    const uint8_t CHIPID_CIDR_SRAMSIZ_64K = 11;
+    const uint8_t CHIPID_EXID_PACKAGE_48 = 2;
+    const uint8_t CHIPID_EXID_PACKAGE_64 = 3;
+    const uint8_t CHIPID_EXID_PACKAGE_100 = 4;
 
 
     // Exceptions
@@ -170,6 +190,27 @@ namespace Core {
         BACKUP,
     };
 
+    // Chip information
+    enum class Package {
+        PCK_48PIN,
+        PCK_64PIN,
+        PCK_100PIN,
+        UNKNOWN
+    };
+
+    enum class RAMSize {
+        RAM_32K,
+        RAM_64K,
+        UNKNOWN
+    };
+
+    enum class FlashSize {
+        FLASH_128K,
+        FLASH_256K,
+        FLASH_512K,
+        UNKNOWN
+    };
+
     using Time = AST::Time;
 
 
@@ -178,6 +219,12 @@ namespace Core {
     void reset();
     void resetToBootloader();
     void resetToBootloader(unsigned int delayMs);
+
+    // Microcontroller information
+    Package package();
+    RAMSize ramSize();
+    FlashSize flashSize();
+    void serialNumber(uint8_t* sn);
 
     // Interrupts
     void setExceptionHandler(Exception exception, void (*handler)());

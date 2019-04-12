@@ -24,6 +24,11 @@ namespace Font {
         const unsigned int height;
         const uint32_t bitmap[32];
     };
+    struct Char64 {
+        const unsigned int width;
+        const unsigned int height;
+        const uint64_t bitmap[64];
+    };
 
     enum class Size {
         SMALL=0,
@@ -40,9 +45,9 @@ namespace Font {
     const unsigned int HEIGHT[] = {5, 8, 16, 32};
     const unsigned int WIDTH[] = {5, 5, 10, 14};
 
-    const unsigned int N_CHARS_TOTAL = 95;
-    const unsigned int N_CHARS_SMALL = 68;
-    const unsigned int N_CHARS_MEDIUM = 68;
+    const unsigned int N_CHARS_TOTAL = 96;
+    const unsigned int N_CHARS_SMALL = 96;
+    const unsigned int N_CHARS_MEDIUM = 96;
     const unsigned int N_CHARS_LARGE = 68;
     extern const Char5 fontSmall[N_CHARS_SMALL];
     extern const Char8 fontMedium[N_CHARS_MEDIUM];

@@ -26,6 +26,7 @@ namespace AST {
     // is synchronizing them between the two clock domains
 
 
+    // Initialize and enable the AST counter with the 32768Hz clock divided by 2 as input
     void init() {
         // See datasheet §19.5.1 Initialization
 
@@ -57,28 +58,19 @@ namespace AST {
 
         // Reset the prescaler value
         (*(volatile uint32_t*)(BASE + OFFSET_CR))
-                = 1 << CR_PCLR;
+                |= 1 << CR_PCLR;
 
-        // Configure the digital tuner to slow down the clock
-        // 32.768kHz -> 31.96878kHz (this is the closest it can get to 32.000kHz)
-        // See the formula in the datasheet §19.5.7
+        // Disable the digital tuner
         waitWhileBusy();
-        (*(volatile uint32_t*)(BASE + OFFSET_DTR))
-                = 1 << DTR_EXP
-                | 0 << DTR_ADD
-                | 13 << DTR_VALUE;
+        (*(volatile uint32_t*)(BASE + OFFSET_DTR)) = 0;
 
-        // Configure the prescaler to divide the clock by 32
-        // 31.96878kHz -> 0.99902kHz
-        // f_out = f_in / 2^(PSEL+1)
-        waitWhileBusy();
-        (*(volatile uint32_t*)(BASE + OFFSET_CR))
-                = 4 << CR_PSEL;
+        // CR.PSEL is kept to 0, which means the prescaler will divide
+        // the input clock frequency by 2
 
         // Enable the counter
         waitWhileBusy();
         (*(volatile uint32_t*)(BASE + OFFSET_CR))
-                |= 1 << CR_EN;
+                = 1 << CR_EN;
     }
 
     void enableAlarm(Time time, bool relative, void (*handler)(), bool wake) {
@@ -98,12 +90,32 @@ namespace AST {
         // IDR (Interrupt Disable Register) : disable the Alarm interrupt
         (*(volatile uint32_t*)(BASE + OFFSET_IDR)) = 1 << SR_ALARM0;
 
-        // Reset the alarm time
-        (*(volatile uint32_t*)(BASE + OFFSET_AR0)) = 0;
-
         // SCR (Status Clear Register) : clear the interrupt
         waitWhileBusy();
         (*(volatile uint32_t*)(BASE + OFFSET_SCR)) = 1 << SR_ALARM0;
+
+        // Convert the time from ms to clock cycles
+        // Remember that the 32768Hz input clock is prescaled by a factor of 2
+        time = (time * (32768/2)) / 1000;
+        
+        // Substract 2 clock cycles from the time to account for the function overhead
+        if (time > 2) {
+            time -= 2;
+        } else {
+            time = 0;
+        }
+
+        // Set the alarm time
+        // The 32-bit truncate is not a problem as long as the alarm is not more than
+        // ~ 36 hours in the future : (2^32) cycles / 36768 = 131072s ~= 36h
+        waitWhileBusy();
+        if (relative) {
+            if (time < 2) {
+                time = 2;
+            }
+            time += *(volatile uint32_t*)(BASE + OFFSET_CV);
+        }
+        (*(volatile uint32_t*)(BASE + OFFSET_AR0)) = (uint32_t)time;
         
         // IER (Interrupt Enable Register) : enable the Alarm interrupt
         (*(volatile uint32_t*)(BASE + OFFSET_IER)) = 1 << SR_ALARM0;
@@ -111,15 +123,6 @@ namespace AST {
         // Enable the module interrupt at the Core level
         Core::setInterruptHandler(Core::Interrupt::AST_ALARM, alarmHandlerWrapper);
         Core::enableInterrupt(Core::Interrupt::AST_ALARM, INTERRUPT_PRIORITY);
-        
-        // Set the alarm time
-        // The 32-bit truncate is not a problem as long as the alarm is not more than
-        // ~ 50 days in the future (2^32=4294967296 ms or ~1193 hours or 49.71 days)
-        waitWhileBusy();
-        if (relative) {
-            time += *(volatile uint32_t*)(BASE + OFFSET_CV) + 1;
-        }
-        (*(volatile uint32_t*)(BASE + OFFSET_AR0)) = (uint32_t)time;
 
         // End of critical section
         Core::enableInterrupts();

@@ -205,7 +205,7 @@ namespace PM {
     unsigned long getModuleClockFrequency(uint8_t peripheral);
     void enablePeripheralClock(uint8_t peripheral, bool enabled=true);
     void disablePeripheralClock(uint8_t peripheral);
-    void enablePBADivClock(uint8_t bit);
+    void enablePBADivClock(uint8_t pow);
 
     // Wake-up and reset
     ResetCause resetCause();

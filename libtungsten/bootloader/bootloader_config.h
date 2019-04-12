@@ -17,7 +17,7 @@
 // bootloader will be activated only if the line is forced to LOW by pressing the button
 // during startup.
 const bool MODE_INPUT = true;
-const GPIO::Pin INPUT_PIN = GPIO::PA04;
+const GPIO::Pin INPUT_PIN = GPIO::PB10;
 const GPIO::PinState INPUT_PIN_STATE = GPIO::LOW;
 const GPIO::Pulling INPUT_PIN_PULLING = GPIO::Pulling::PULLUP;
 
@@ -32,12 +32,12 @@ const unsigned int TIMEOUT_DELAY = 3000; // ms
 // codeuploader tool included with the library.
 const bool CHANNEL_USB_ENABLED = true;
 const uint16_t USB_VENDOR_ID = USB::DEFAULT_VENDOR_ID;
-const uint16_t USB_PRODUCT_ID = USB::DEFAULT_PRODUCT_ID;
+const uint16_t USB_PRODUCT_ID = 0xcbd0;
 
 // Enable the USART channel to allow the bootloader to receive instructions via a serial
 // connection. The port, pins and baudrate can be customized. See pins_sam4l_XX.cpp
 // for the list of available pins.
-const bool CHANNEL_USART_ENABLED = true;
+const bool CHANNEL_USART_ENABLED = false;
 const USART::Port USART_PORT = USART::Port::USART0;
 const int USART_BAUDRATE = 115200;
 const GPIO::Pin USART_PIN_RX = {GPIO::Port::A, 11, GPIO::Periph::A};
@@ -48,11 +48,11 @@ const int USART_TIMEOUT = 3000;
 // and customized here. The LED_POLARITY option specifies the state to set to turn the
 // LED on.
 const bool LED_BL_ENABLED = true;
-const GPIO::Pin PIN_LED_BL = GPIO::PA01; // Green led on Carbide
+const GPIO::Pin PIN_LED_BL = GPIO::PB13;
 const bool LED_WRITE_ENABLED = true;
-const GPIO::Pin PIN_LED_WRITE = GPIO::PA02; // Blue led on Carbide
+const GPIO::Pin PIN_LED_WRITE = GPIO::PB12;
 const bool LED_ERROR_ENABLED = true;
-const GPIO::Pin PIN_LED_ERROR = GPIO::PA00; // Red led on Carbide
+const GPIO::Pin PIN_LED_ERROR = GPIO::PB12;
 const GPIO::PinState LED_POLARITY = GPIO::LOW;
 const unsigned int LED_BL_BLINK_DELAY_STANDBY = 200; // ms
 const unsigned int LED_BL_BLINK_DELAY_CONNECTED = 50; // ms

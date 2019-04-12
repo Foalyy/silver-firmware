@@ -1,10 +1,10 @@
 ## CONFIG
 
-NAME=trigger
+NAME=silver
 
-#BOOTLOADER=true
-DEBUG=true
-CARBIDE=true
+BOOTLOADER=true
+#DEBUG=true
+#CARBIDE=true
 PACKAGE=64
 
 # Available modules : adc dac eic gloc i2c spi tc trng usart wdt
@@ -18,6 +18,7 @@ UTILS_MODULES=
 USER_MODULES=\
 	gui \
 	sync \
+	sync_usb \
 	context \
 	drivers/oled_ssd1306/oled \
 	drivers/oled_ssd1306/font_small \
@@ -29,3 +30,9 @@ TOOLCHAIN_PATH=/home/foaly/Software/gcc-arm-none-eabi/bin/
 
 # Include the main lib makefile
 include libtungsten/Makefile
+
+# Custom rules
+clean: clean-all
+	rm -f drivers/*.o
+	rm -f drivers/lora/*.o
+	rm -f drivers/oled_ssd1306/*.o

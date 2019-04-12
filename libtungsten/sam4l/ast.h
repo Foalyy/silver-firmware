@@ -57,8 +57,8 @@ namespace AST {
 
     // Module API
     void init();
-    inline Time time() { return _currentTimeHighBytes + (*(volatile uint32_t*)(BASE + OFFSET_CV)); };
-    void enableAlarm(Time time, bool relative=false, void (*handler)()=nullptr, bool wake=true);
+    inline Time time() { return ((_currentTimeHighBytes + (*(volatile uint32_t*)(BASE + OFFSET_CV))) * 1000) / (32768/2); };
+    void enableAlarm(Time time, bool relative=true, void (*handler)()=nullptr, bool wake=true);
     void disableAlarm();
     bool alarmPassed();
 
