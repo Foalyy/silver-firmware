@@ -404,14 +404,23 @@ void GUI::showMenuContent() {
             OLED::checkbox(2, OLED::HEIGHT - buttonHeight, OLED::WIDTH - 4, buttonHeight, "Sync", Context::_submenuItemSelected == SUBMENU_INPUT_SYNC, Context::_submenuItemSelected == SUBMENU_INPUT_SYNC && Context::_btnOkPressed, Context::_inputSync);
 
         } else if (Context::_menuItemSelected == MENU_SETTINGS) {
-            char str[13] = "Channel :   ";
+            char strChannel[13] = "Channel :   ";
             if (Context::_syncChannel >= 10) {
-                str[10] = ((Context::_syncChannel / 10) % 10) + '0';
-                str[11] = (Context::_syncChannel % 10) + '0';
+                strChannel[10] = ((Context::_syncChannel / 10) % 10) + '0';
+                strChannel[11] = (Context::_syncChannel % 10) + '0';
             } else {
-                str[10] = Context::_syncChannel + '0';
+                strChannel[10] = Context::_syncChannel + '0';
             }
-            OLED::button(2, MENU_HEIGHT + 3, OLED::WIDTH - 4, buttonHeight, str, Context::_submenuItemSelected == SUBMENU_SETTINGS_CHANNEL, false);
+            OLED::button(2, MENU_HEIGHT + 3, OLED::WIDTH - 4, buttonHeight, strChannel, Context::_submenuItemSelected == SUBMENU_SETTINGS_CHANNEL, false);
+
+            char strBrightness[16] = "Brightness :   ";
+            if (Context::_brightness == 10) {
+                strBrightness[13] = '1';
+                strBrightness[14] = '0';
+            } else {
+                strBrightness[14] = Context::_brightness + '0';
+            }
+            OLED::button(2, MENU_HEIGHT + 3 + buttonHeight + 2, OLED::WIDTH - 4, buttonHeight, strBrightness, Context::_submenuItemSelected == SUBMENU_SETTINGS_BRIGHTNESS, false);
             
         } else if (Context::_menuItemSelected == MENU_ADVANCED) {
             char strFocus[23] = "Focus duration : \0\0\0\0\0";
@@ -468,34 +477,19 @@ bool GUI::handleButtons() {
         _tMenuChange = 0;
         if (Context::_menuItemSelected == MENU_TRIGGER && Context::_submenuItemSelected < SUBMENU_TRIGGER_SYNC) {
             Context::_submenuItemSelected++;
-            if (Context::_submenuItemSelected == 1) {
-                showMenu();
-            }
         } else if (Context::_menuItemSelected == MENU_DELAY && Context::_submenuItemSelected < SUBMENU_DELAY_SYNC) {
             Context::_submenuItemSelected++;
-            if (Context::_submenuItemSelected == 1) {
-                showMenu();
-            }
         } else if (Context::_menuItemSelected == MENU_INTERVAL && Context::_submenuItemSelected < SUBMENU_INTERVAL_SYNC) {
             Context::_submenuItemSelected++;
-            if (Context::_submenuItemSelected == 1) {
-                showMenu();
-            }
         } else if (Context::_menuItemSelected == MENU_INPUT && Context::_submenuItemSelected < SUBMENU_INPUT_SYNC) {
             Context::_submenuItemSelected++;
-            if (Context::_submenuItemSelected == 1) {
-                showMenu();
-            }
-        } else if (Context::_menuItemSelected == MENU_SETTINGS && Context::_submenuItemSelected < SUBMENU_SETTINGS_CHANNEL) {
+        } else if (Context::_menuItemSelected == MENU_SETTINGS && Context::_submenuItemSelected < SUBMENU_SETTINGS_BRIGHTNESS) {
             Context::_submenuItemSelected++;
-            if (Context::_submenuItemSelected == 1) {
-                showMenu();
-            }
         } else if (Context::_menuItemSelected == MENU_ADVANCED && Context::_submenuItemSelected < SUBMENU_ADVANCED_SYNC) {
             Context::_submenuItemSelected++;
-            if (Context::_submenuItemSelected == 1) {
-                showMenu();
-            }
+        }
+        if (Context::_submenuItemSelected == 1) {
+            showMenu();
         }
         buttonPressed = true;
 
@@ -556,6 +550,11 @@ bool GUI::handleButtons() {
                 if (Context::_submenuItemSelected == SUBMENU_SETTINGS_CHANNEL) {
                     if (Context::_syncChannel > 0) {
                         Context::_syncChannel--;
+                    }
+                } else if (Context::_submenuItemSelected == SUBMENU_SETTINGS_BRIGHTNESS) {
+                    if (Context::_brightness > 0) {
+                        Context::_brightness--;
+                        OLED::setContrast(Context::_brightness * 25);
                     }
                 }
                 menuModified = MENU_SETTINGS;
@@ -639,6 +638,11 @@ bool GUI::handleButtons() {
                 if (Context::_submenuItemSelected == SUBMENU_SETTINGS_CHANNEL) {
                     if (Context::_syncChannel < Sync::N_CHANNELS) {
                         Context::_syncChannel++;
+                    }
+                } else if (Context::_submenuItemSelected == SUBMENU_SETTINGS_BRIGHTNESS) {
+                    if (Context::_brightness < 10) {
+                        Context::_brightness++;
+                        OLED::setContrast(Context::_brightness * 25);
                     }
                 }
                 menuModified = MENU_SETTINGS;

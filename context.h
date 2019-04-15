@@ -23,6 +23,7 @@ namespace Context {
     extern unsigned int _settingsTriggerDurationMs;
     extern bool _settingsSync;
     extern int _syncChannel;
+    extern int _brightness;
 
     extern Core::Time _tFocus;
     extern Core::Time _tTrigger;

@@ -13,7 +13,6 @@
 #include "pins.h"
 
 
-const uint8_t OLED_CONTRAST_DEFAULT = 255;
 const uint8_t OLED_CONTRAST_DIMMED = 0;
 const int OLED_DIM_DELAY = 0; // 30s
 const int OLED_TURNOFF_DELAY = 0; // 10min
@@ -43,7 +42,7 @@ int main() {
 
     // Init the GUI
     GUI::init();
-    OLED::setContrast(OLED_CONTRAST_DEFAULT);
+    OLED::setContrast(Context::_brightness * 25);
 
     // Init the buttons
     GPIO::enableInput(PIN_BTN_UP, GPIO::Pulling::PULLUP);
@@ -515,7 +514,7 @@ int main() {
             OLED::setContrast(OLED_CONTRAST_DIMMED);
             screenDimmed = true;
         } else if (screenDimmed && t - tLastActivity <= OLED_DIM_DELAY) {
-            OLED::setContrast(OLED_CONTRAST_DEFAULT);
+            OLED::setContrast(Context::_brightness * 25);
             screenDimmed = false;
             OLED::enable();
             screenOff = false;

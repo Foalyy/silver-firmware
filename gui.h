@@ -30,6 +30,7 @@ namespace GUI {
     const int SUBMENU_INPUT_SYNC = 2;
     const int MENU_SETTINGS = 4;
     const int SUBMENU_SETTINGS_CHANNEL = 1;
+    const int SUBMENU_SETTINGS_BRIGHTNESS = 2;
     const int MENU_ADVANCED = 5;
     const int SUBMENU_ADVANCED_FOCUS_DURATION = 1;
     const int SUBMENU_ADVANCED_TRIGGER_DURATION = 2;

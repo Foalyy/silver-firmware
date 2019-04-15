@@ -20,6 +20,7 @@ unsigned int Context::_settingsFocusDurationMs = 0;
 unsigned int Context::_settingsTriggerDurationMs = 100;
 bool Context::_settingsSync = true;
 int Context::_syncChannel = 0;
+int Context::_brightness = 10;
 
 Core::Time Context::_tFocus = 0;
 Core::Time Context::_tTrigger = 0;
