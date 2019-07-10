@@ -7,9 +7,8 @@
 
 namespace LoRa {
 
-    const GPIO::Pin PIN_RESET = {GPIO::Port::A, 13};
-
     const uint32_t DEFAULT_FREQUENCY = 868000000L; // 868MHz
+    const int MAX_TX_LENGTH = 128;
 
     // Registers
     const uint8_t REG_FIFO = 0x00;
@@ -96,10 +95,14 @@ namespace LoRa {
         BW_500kHz
     };
 
+    enum class PinFunction {
+        RESET
+    };
 
-    bool init(uint32_t frequency=DEFAULT_FREQUENCY, SPI::Peripheral slave=0);
+
+    void setPin(PinFunction pinFunction, GPIO::Pin pin);
     void disable();
-    void enable();
+    bool init(SPI::Peripheral slave, uint32_t frequency=DEFAULT_FREQUENCY);
     void setMode(Mode mode);
     void setFrequency(uint32_t frequency);
     void setTxPower(int dBm);

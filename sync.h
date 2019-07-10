@@ -28,8 +28,6 @@ namespace Sync {
 
 
     bool init();
-    void disable();
-    void enable();
     bool commandAvailable();
     uint8_t getCommand();
     int getPayload(uint8_t* buffer);

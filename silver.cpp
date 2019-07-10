@@ -32,12 +32,10 @@ int main() {
     Core::sleep(TURNON_DELAY);
     GPIO::enableOutput(PIN_PW_EN, GPIO::HIGH);
 
-    // Enable the SPI interface for the OLED and the LoRa
+    // Enable the SPI interface
     SPI::setPin(SPI::PinFunction::MISO, PIN_MISO);
     SPI::setPin(SPI::PinFunction::MOSI, PIN_MOSI);
     SPI::setPin(SPI::PinFunction::SCK, PIN_SCK);
-    SPI::setPin(SPI::PinFunction::CS0, PIN_CS0);
-    SPI::setPin(SPI::PinFunction::CS1, PIN_CS1);
     SPI::enableMaster();
 
     // Init the GUI
@@ -52,10 +50,12 @@ int main() {
     GPIO::enableInput(PIN_BTN_OK, GPIO::Pulling::PULLUP);
     GPIO::enableInput(PIN_BTN_PW);
     GPIO::enableInput(PIN_BTN_TRIGGER, GPIO::Pulling::PULLUP);
+    GPIO::enableInput(PIN_BTN_FOCUS, GPIO::Pulling::PULLUP);
 
     // Init the leds
-    GPIO::enableOutput(PIN_LED_PW, GPIO::LOW);
     GPIO::enableOutput(PIN_LED_TRIGGER, GPIO::HIGH);
+    GPIO::enableOutput(PIN_LED_FOCUS, GPIO::HIGH);
+    GPIO::enableOutput(PIN_LED_INPUT, GPIO::HIGH);
 
     // Init the sync module
     if (!Sync::init()) {
@@ -81,11 +81,11 @@ int main() {
     bool lastFocus = false;
     bool lastTrigger = false;
     bool lastBtnPw = true;
+    bool lastBtnFocus = false;
     bool lastBtnTrigger = false;
     bool lastBtnOk = false;
     bool lastInput = false;
     Core::Time t = Core::time();
-    Core::Time tPowerLed = t;
     Core::Time tLastActivity = t;
     Core::Time tBtnPwPressed = 0;
     Core::Time tWaitingLed = 0;
@@ -123,14 +123,8 @@ int main() {
         if (tBtnPwPressed > 0 && Core::time() - tBtnPwPressed >= TURNOFF_DELAY) {
             // Shutdown
 
-            // Turn on the power LED
-            GPIO::set(PIN_LED_PW, GPIO::LOW);
-
             // Display the shutdown message on the screen
-            OLED::clear();
-            OLED::setSize(Font::Size::MEDIUM);
-            OLED::printCentered(OLED::WIDTH / 2, OLED::HEIGHT / 2 - 16 / 2, "See ya!");
-            OLED::refresh();
+            GUI::showExitScreen();
 
             // Save the current settings
             Context::save();
@@ -140,7 +134,6 @@ int main() {
 
             // Turn off the screen and the power LED
             OLED::disable();
-            GPIO::set(PIN_LED_PW, GPIO::HIGH);
 
             // Ready to shutdown, release the power supply enable line
             GPIO::set(PIN_PW_EN, GPIO::LOW);
@@ -196,6 +189,50 @@ int main() {
             // Hold down
             tLastActivity = t;
             trigger = true;
+        }
+
+        // Focus button
+        t = Core::time();
+        bool btnFocus = !GPIO::get(PIN_BTN_FOCUS);
+        if (!lastBtnFocus && btnFocus) {
+            // Pressed
+            tLastActivity = t;
+            refresh = true;
+            if (Context::_submenuFocusHold) {
+                if (Context::_triggerSync) {
+                    Sync::send(Sync::CMD_FOCUS_HOLD);
+                    tFocusHoldKeepalive = Core::time();
+                }
+            } else {
+                if (Context::_tFocus == 0) {
+                    // Start
+                    Context::_tFocus = t;
+                    if (Context::_triggerSync) {
+                        Sync::send(Sync::CMD_FOCUS);
+                    }
+                } else {
+                    // Stop
+                    Context::_tFocus = 0;
+                    if (Context::_triggerSync) {
+                        Sync::send(Sync::CMD_FOCUS_RELEASE);
+                    }
+                }
+            }
+        } else if (lastBtnFocus && !btnFocus) {
+            // Released
+            tLastActivity = t;
+            refresh = true;
+            if (Context::_submenuFocusHold) {
+                if (Context::_triggerSync) {
+                    Sync::send(Sync::CMD_FOCUS_RELEASE);
+                    tFocusHoldKeepalive = 0;
+                }
+            }
+        }
+        if (btnFocus && Context::_submenuFocusHold) {
+            // Hold down
+            tLastActivity = t;
+            focus = true;
         }
 
         // External input
@@ -476,6 +513,24 @@ int main() {
         GPIO::set(PIN_FOCUS, focus || trigger);
         GPIO::set(PIN_TRIGGER, trigger);
 
+        // Input LED
+        if (inputStatus) {
+            // Off
+            GPIO::set(PIN_LED_INPUT, GPIO::LOW);
+        } else {
+            // On
+            GPIO::set(PIN_LED_INPUT, GPIO::HIGH);
+        }
+
+        // Focus LED
+        if (focus) {
+            // Off
+            GPIO::set(PIN_LED_FOCUS, GPIO::LOW);
+        } else {
+            // On
+            GPIO::set(PIN_LED_FOCUS, GPIO::HIGH);
+        }
+
         // Trigger LED
         if (waiting) {
             // Blink the trigger LED while waiting
@@ -496,13 +551,6 @@ int main() {
         } else {
             // On
             GPIO::set(PIN_LED_TRIGGER, GPIO::HIGH);
-        }
-
-        // Power LED
-        t = Core::time();
-        GPIO::set(PIN_LED_PW, !(t - tPowerLed < 100));
-        while (t - tPowerLed > LED_BLINK_DELAY) {
-            tPowerLed += LED_BLINK_DELAY;
         }
 
         // Dim then turn off the screen in case of inactivity
@@ -534,6 +582,7 @@ int main() {
         lastFocus = focus;
         lastTrigger = trigger;
         lastBtnPw = btnPw;
+        lastBtnFocus = btnFocus;
         lastBtnTrigger = btnTrigger;
         lastInput = inputStatus;
         lastBtnOk = btnOk;

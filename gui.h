@@ -42,6 +42,7 @@ namespace GUI {
     void showMenuContent();
     bool handleButtons();
     void update(bool refresh, bool trigger, bool focus, bool waiting, bool input);
+    void showExitScreen();
 
 }
 

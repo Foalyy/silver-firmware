@@ -1,10 +1,13 @@
 #include <core.h>
+#include <gpio.h>
 #include <spi.h>
 #include "lora.h"
 
 namespace LoRa {
 
+    GPIO::Pin pinReset = GPIO::PA00;
     SPI::Peripheral _spi = 0;
+    bool _spiEnabled = false;
     uint32_t _frequency = 0;
     Mode _mode = Mode::STANDBY;
     int _txPowerdBm = 0;
@@ -18,20 +21,36 @@ namespace LoRa {
     void writeConfig();
 
 
+    // Set the GPIOs used by the module
+    void setPin(PinFunction pinFunction, GPIO::Pin pin) {
+        if (pinFunction == PinFunction::RESET) {
+            pinReset = pin;
+        }
+    }
+
+    void disable() {
+        // Turn of the module by forcing it into reset
+        // init() must be called to turn it back on
+        GPIO::enableOutput(pinReset, GPIO::LOW);
+    }
+
     // Initialize the module with default settings and check it answers correctly
-    bool init(uint32_t frequency, SPI::Peripheral slave) {
+    bool init(SPI::Peripheral slave, uint32_t frequency) {
         _spi = slave;
 
         // Reset
-        GPIO::enableOutput(PIN_RESET, GPIO::LOW);
+        GPIO::enableOutput(pinReset, GPIO::LOW);
         Core::sleep(1);
-        GPIO::enableOutput(PIN_RESET, GPIO::HIGH);
+        GPIO::set(pinReset, GPIO::HIGH);
         Core::sleep(5);
 
         // Enable the SPI controller for this slave
-        SPI::addPeripheral(_spi);
+        if (!_spiEnabled) {
+            SPI::addPeripheral(_spi);
+        }
+        _spiEnabled = true;
 
-        // Chech that the modules answers on the bus
+        // Check that the modules answers on the bus
         uint8_t version = readRegister(REG_VERSION);
         if (version == 0x00 || version == 0xFF) {
             return false;
@@ -52,16 +71,6 @@ namespace LoRa {
         Core::sleep(10);
 
         return true;
-    }
-
-    // Disable the module by holding it into reset
-    void disable() {
-        GPIO::enableOutput(PIN_RESET, GPIO::LOW);
-    }
-
-    // Enable the module by releasing its reset
-    void enable() {
-        GPIO::enableOutput(PIN_RESET, GPIO::HIGH);
     }
 
     // Set the current operating mode (sleep, standby, rx, tx...)
@@ -164,6 +173,11 @@ namespace LoRa {
 
     // Send data
     void tx(uint8_t* payload, unsigned int length) {
+        // Check length
+        if (length > MAX_TX_LENGTH) {
+            length = MAX_TX_LENGTH;
+        }
+        
         // Clear all flags
         writeRegister(REG_IRQ_FLAGS, 0xFF);
 
@@ -245,7 +259,7 @@ namespace LoRa {
             // Read the data from the FIFO
             uint8_t txBuffer[1] = {REG_FIFO};
             SPI::transfer(_spi, txBuffer, 1, nullptr, -1, true);
-            SPI::transfer(_spi, nullptr, -1, buffer, rxBytesNb);
+            SPI::transfer(_spi, nullptr, 0, buffer, rxBytesNb);
 
             // Clear all flags
             writeRegister(REG_IRQ_FLAGS, 0xFF);

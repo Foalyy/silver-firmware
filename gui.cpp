@@ -238,11 +238,12 @@ const int DELAY_LOGO_INIT = 2000;
 
 void GUI::init() {
     // Init the screen
-    OLED::initScreen(0, PIN_OLED_DC, PIN_OLED_RES);
+    SPI::setPin(static_cast<SPI::PinFunction>(static_cast<int>(SPI::PinFunction::CS0) + static_cast<int>(SPI_SLAVE_OLED)), PIN_OLED_CS);
+    OLED::initScreen(SPI_SLAVE_OLED, PIN_OLED_DC, PIN_OLED_RES);
     OLED::setRotation(OLED::Rotation::R180);
     OLED::printXXLarge((OLED::WIDTH - 64) / 2, (OLED::HEIGHT - 64) / 2, ICON_SILICA_XXL);
     OLED::setSize(Font::Size::MEDIUM);
-    OLED::printCentered(OLED::WIDTH / 2, 54, "silica.io");
+    OLED::printCentered(OLED::WIDTH / 2, 54, "SILVER");
     OLED::refresh();
     _tGUIInit = Core::time();
 }
@@ -858,4 +859,12 @@ void GUI::update(bool refresh, bool trigger, bool focus, bool waiting, bool inpu
     if (refresh) {
         OLED::refresh();
     }
+}
+
+void GUI::showExitScreen() {
+    OLED::clear();
+    OLED::setSize(Font::Size::MEDIUM);
+    OLED::printXXLarge((OLED::WIDTH - 64) / 2, (OLED::HEIGHT - 64) / 2, ICON_SILICA_XXL);
+    OLED::printCentered(OLED::WIDTH / 2, 54, "Bye!");
+    OLED::refresh();
 }

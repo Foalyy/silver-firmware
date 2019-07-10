@@ -1,6 +1,7 @@
 #include "sync.h"
 #include <string.h>
 #include "gui.h"
+#include "pins.h"
 #include "context.h"
 #include "drivers/lora/lora.h"
 #include <core.h>
@@ -14,7 +15,9 @@ namespace Sync {
     bool _commandAvailable = false;
 
     bool init() {
-        if (!LoRa::init(LORA_FREQUENCY, 1)) {
+        LoRa::setPin(LoRa::PinFunction::RESET, PIN_LORA_RESET);
+        SPI::setPin(static_cast<SPI::PinFunction>(static_cast<int>(SPI::PinFunction::CS0) + static_cast<int>(SPI_SLAVE_LORA)), PIN_LORA_CS);
+        if (!LoRa::init(SPI_SLAVE_LORA, LORA_FREQUENCY)) {
             return false;
         }
         LoRa::setTxPower(14); // dBm
@@ -24,14 +27,6 @@ namespace Sync {
         LoRa::setExplicitHeader(true);
         LoRa::enableRx();
         return true;
-    }
-
-    void disable() {
-        LoRa::disable();
-    }
-
-    void enable() {
-        LoRa::enable();
     }
 
     bool commandAvailable() {
