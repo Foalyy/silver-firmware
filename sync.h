@@ -5,7 +5,7 @@
 
 namespace Sync {
 
-    const uint32_t LORA_FREQUENCY = 868250000L; // 868.25MHz
+    const uint32_t LORA_FREQUENCY = 869350000L; // 868.25MHz
 
     const int N_CHANNELS = 255;
     const uint8_t SYNC_PREAMBLE = 0x42;

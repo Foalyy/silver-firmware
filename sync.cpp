@@ -23,7 +23,7 @@ namespace Sync {
         LoRa::setTxPower(14); // dBm
         LoRa::setSpreadingFactor(8);
         LoRa::setCodingRate(LoRa::CodingRate::RATE_4_8);
-        LoRa::setBandwidth(LoRa::Bandwidth::BW_500kHz);
+        LoRa::setBandwidth(LoRa::Bandwidth::BW_125kHz);
         LoRa::setExplicitHeader(true);
         LoRa::enableRx();
         return true;

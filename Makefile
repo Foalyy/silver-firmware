@@ -2,8 +2,8 @@
 
 NAME=silver
 
-BOOTLOADER=true
-#DEBUG=true
+BOOTLOADER=false
+DEBUG=true
 #CARBIDE=true
 PACKAGE=64
 
