@@ -7,6 +7,8 @@ namespace Context {
 
     extern int _menuItemSelected;
     extern int _submenuItemSelected;
+    extern bool _editingItem;
+    extern int _editingItemCursor;
     extern bool _btnOkPressed;
     extern bool _submenuFocusHold;
     extern bool _submenuTriggerHold;
@@ -19,9 +21,9 @@ namespace Context {
     extern bool _intervalSync;
     extern int _inputMode;
     extern bool _inputSync;
-    extern unsigned int _settingsFocusDurationMs;
-    extern unsigned int _settingsTriggerDurationMs;
-    extern bool _settingsSync;
+    extern unsigned int _timingsFocusDurationMs;
+    extern unsigned int _timingsTriggerDurationMs;
+    extern bool _timingsSync;
     extern int _syncChannel;
     extern int _brightness;
 

@@ -21,20 +21,20 @@ namespace GUI {
     const int SUBMENU_INTERVAL_SHOTS = 1;
     const int SUBMENU_INTERVAL_DELAY = 2;
     const int SUBMENU_INTERVAL_SYNC = 3;
-    const int MENU_INPUT = 3;
+    const int MENU_TIMINGS = 3;
+    const int SUBMENU_TIMINGS_FOCUS_DURATION = 1;
+    const int SUBMENU_TIMINGS_TRIGGER_DURATION = 2;
+    const int SUBMENU_TIMINGS_SYNC = 3;
+    const int MENU_INPUT = 4;
     const int SUBMENU_INPUT_MODE = 1;
     const int SUBMENU_INPUT_MODE_DISABLED = 0;
     const int SUBMENU_INPUT_MODE_TRIGGER = 1;
     const int SUBMENU_INPUT_MODE_TRIGGER_NODELAY = 2;
     const int SUBMENU_INPUT_MODE_PASSTHROUGH = 3;
     const int SUBMENU_INPUT_SYNC = 2;
-    const int MENU_SETTINGS = 4;
+    const int MENU_SETTINGS = 5;
     const int SUBMENU_SETTINGS_CHANNEL = 1;
     const int SUBMENU_SETTINGS_BRIGHTNESS = 2;
-    const int MENU_ADVANCED = 5;
-    const int SUBMENU_ADVANCED_FOCUS_DURATION = 1;
-    const int SUBMENU_ADVANCED_TRIGGER_DURATION = 2;
-    const int SUBMENU_ADVANCED_SYNC = 3;
 
     void init();
     void setMenu(int menuItemSelected);
@@ -42,6 +42,12 @@ namespace GUI {
     void showMenuContent();
     bool handleButtons();
     void update(bool refresh, bool trigger, bool focus, bool waiting, bool input);
+    void displayTimeButton(unsigned int x, unsigned int y, unsigned int width, unsigned int height, const char* label, unsigned int valueMs, bool selected=false, bool editing=false, int editingCursor=0);
+    void incrementTimeButton(unsigned int& valueMs);
+    void decrementTimeButton(unsigned int& valueMs);
+    void displayIntButton(unsigned int x, unsigned int y, unsigned int width, unsigned int height, const char* label, const char* labelUnit, unsigned int value, unsigned int length, bool selected, bool editing, int editingCursor);
+    void incrementIntButton(int& value, unsigned int length);
+    void decrementIntButton(int& value, unsigned int length, int min=0);
     void showExitScreen();
 
 }

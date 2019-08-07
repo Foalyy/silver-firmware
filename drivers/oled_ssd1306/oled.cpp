@@ -190,6 +190,14 @@ namespace OLED {
         }
     }
 
+    void rect(unsigned int x, unsigned int y, unsigned int width, unsigned int height, bool on) {
+        for (unsigned int _x = x; _x < x + width; _x++) {
+            for (unsigned int _y = y; _y < y + height; _y++) {
+                setPixel(_x, _y, on);
+            }
+        }
+    }
+
     // Print a single character at the current cursor position using the current
     // font size
     void print(char character) {
@@ -256,6 +264,18 @@ namespace OLED {
         print(x, y, text);
     }
 
+    // Return the width in pixels of the specified character
+    int charWidth(char c) {
+        if (_size == Font::Size::SMALL) {
+            return Font::getSmall(c).width;
+        } else if (_size == Font::Size::MEDIUM) {
+            return Font::getMedium(c).width;
+        } else if (_size == Font::Size::LARGE) {
+            return Font::getLarge(c).width;
+        }
+        return 0;
+    }
+
     // Return the width in pixels of the specified text
     int textWidth(const char* text) {
         int i = 0;
@@ -269,13 +289,7 @@ namespace OLED {
                 }
                 width = 0;
             } else {
-                if (_size == Font::Size::SMALL) {
-                    width += Font::getSmall(c).width + 1;
-                } else if (_size == Font::Size::MEDIUM) {
-                    width += Font::getMedium(c).width + 1;
-                } else if (_size == Font::Size::LARGE) {
-                    width += Font::getLarge(c).width + 1;
-                }
+                width += charWidth(c) + 1;
             }
             i++;
             c = text[i];
@@ -631,7 +645,7 @@ namespace OLED {
         } else if (_size == Font::Size::LARGE) {
             labelHeight = 16;
         }
-        printCentered(width / 2, y + (height - labelHeight) / 2, label);
+        printCentered(x + width / 2, y + (height - labelHeight) / 2, label);
 
         // Arrows
         if (arrowLeft) {
@@ -676,6 +690,14 @@ namespace OLED {
             }
         }
         _inverted = savedInverted;
+    }
+
+    unsigned int cursorX() {
+        return _cursorX;
+    }
+
+    unsigned int cursorY() {
+        return _cursorY;
     }
 
     void setCursor(unsigned int x, unsigned int y) {

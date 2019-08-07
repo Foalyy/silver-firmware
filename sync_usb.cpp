@@ -115,13 +115,13 @@ namespace SyncUSB {
                     static_cast<uint8_t>(Context::_inputMode),
                     static_cast<uint8_t>(Context::_inputSync),
                     static_cast<uint8_t>(Context::_syncChannel),
-                    static_cast<uint8_t>(Context::_settingsFocusDurationMs / 100 >> 16),
-                    static_cast<uint8_t>(Context::_settingsFocusDurationMs / 100 >> 8),
-                    static_cast<uint8_t>(Context::_settingsFocusDurationMs / 100),
-                    static_cast<uint8_t>(Context::_settingsTriggerDurationMs / 100 >> 16),
-                    static_cast<uint8_t>(Context::_settingsTriggerDurationMs / 100 >> 8),
-                    static_cast<uint8_t>(Context::_settingsTriggerDurationMs / 100),
-                    static_cast<uint8_t>(Context::_settingsSync)
+                    static_cast<uint8_t>(Context::_timingsFocusDurationMs / 100 >> 16),
+                    static_cast<uint8_t>(Context::_timingsFocusDurationMs / 100 >> 8),
+                    static_cast<uint8_t>(Context::_timingsFocusDurationMs / 100),
+                    static_cast<uint8_t>(Context::_timingsTriggerDurationMs / 100 >> 16),
+                    static_cast<uint8_t>(Context::_timingsTriggerDurationMs / 100 >> 8),
+                    static_cast<uint8_t>(Context::_timingsTriggerDurationMs / 100),
+                    static_cast<uint8_t>(Context::_timingsSync)
                 };
                 int payloadSize = sizeof(buffer);
                 if (size < payloadSize) {

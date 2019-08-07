@@ -44,13 +44,15 @@ namespace OLED {
     void clear();
     void clear(unsigned int x, unsigned int y, unsigned int width, unsigned int height);
     void setPixel(unsigned int x, unsigned int y, bool on=true);
+    void rect(unsigned int x, unsigned int y, unsigned int width, unsigned int height, bool on=true);
     void resetPixel(unsigned int x, unsigned int y);
     void print(char character);
     void print(unsigned int x, unsigned int y, char character);
     void print(const char* text);
     void print(unsigned int x, unsigned int y, const char* text);
     void printCentered(unsigned int x, unsigned int y, const char* text);
-    int textWidth(const char* characters);
+    int charWidth(char c);
+    int textWidth(const char* text);
     void printInt(unsigned int x, unsigned int y, int value, int base=10);
     void printInt(int value, int base=10);
     void printSmall(char character);
@@ -67,6 +69,8 @@ namespace OLED {
     void progressbar(unsigned int x, unsigned int y, unsigned int width, unsigned int height, unsigned char percent);
     void button(unsigned int x, unsigned int y, unsigned int width, unsigned int height, const char* label, bool selected=false, bool pressed=false, bool arrowLeft=false, bool arrowRight=false);
     void checkbox(unsigned int x, unsigned int y, unsigned int width, unsigned int height, const char* label, bool selected, bool pressed, bool checked);
+    unsigned int cursorX();
+    unsigned int cursorY();
     void setCursor(unsigned int x, unsigned int y);
     void setCursorX(unsigned int x);
     void setCursorY(unsigned int y);

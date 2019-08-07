@@ -378,17 +378,17 @@ int main() {
                 }
             } else if (command == GUI::MENU_SETTINGS && isCommandFromUSB && payloadSize >= 1) {
                 Context::_syncChannel = payload[0];
-            } else if (command == GUI::MENU_ADVANCED && (isCommandFromUSB || Context::_settingsSync) && payloadSize >= 6) {
-                Context::_settingsFocusDurationMs = ((payload[0] << 16) + (payload[1] << 8) + payload[2]) * 100;
-                Context::_settingsTriggerDurationMs = ((payload[3] << 8) + (payload[4] << 8) + payload[5]) * 100;
+            } else if (command == GUI::MENU_TIMINGS && (isCommandFromUSB || Context::_timingsSync) && payloadSize >= 6) {
+                Context::_timingsFocusDurationMs = ((payload[0] << 16) + (payload[1] << 8) + payload[2]) * 100;
+                Context::_timingsTriggerDurationMs = ((payload[3] << 8) + (payload[4] << 8) + payload[5]) * 100;
                 if (isCommandFromUSB && payloadSize >= 7) {
-                    Context::_settingsSync = payload[6];
+                    Context::_timingsSync = payload[6];
                 }
-                if (isCommandFromUSB && Context::_settingsSync) {
+                if (isCommandFromUSB && Context::_timingsSync) {
                     Sync::send(command, payload, payloadSize);
                 }
                 if (!isCommandFromUSB && SyncUSB::isConnected()) {
-                    payload[6] = Context::_settingsSync;
+                    payload[6] = Context::_timingsSync;
                     SyncUSB::send(command, payload, payloadSize + 1);
                 }
             } else if (command == Sync::CMD_FOCUS && (isCommandFromUSB || Context::_triggerSync)) {
@@ -475,7 +475,7 @@ int main() {
         // Focus and trigger timings (non-hold)
         t = Core::time();
         if (Context::_tFocus > 0 && !Context::_submenuFocusHold) {
-            if (t > Context::_tFocus + Context::_settingsFocusDurationMs) {
+            if (t > Context::_tFocus + Context::_timingsFocusDurationMs) {
                 Context::_tFocus = 0;
             } else {
                 focus = true;
@@ -484,11 +484,11 @@ int main() {
         if (Context::_tTrigger > 0 && !Context::_submenuTriggerHold) {
             // Start and end times
             unsigned int intervalDelayMs = Context::_intervalDelayMs;
-            if (intervalDelayMs < Context::_settingsFocusDurationMs + Context::_settingsTriggerDurationMs) {
-                intervalDelayMs = Context::_settingsFocusDurationMs + Context::_settingsTriggerDurationMs;
+            if (intervalDelayMs < Context::_timingsFocusDurationMs + Context::_timingsTriggerDurationMs) {
+                intervalDelayMs = Context::_timingsFocusDurationMs + Context::_timingsTriggerDurationMs;
             }
             Core::Time tStart = Context::_tTrigger + (Context::_skipDelay ? 0 : Context::_delayMs);
-            Core::Time tEnd = tStart + (Context::_intervalNShots - 1) * intervalDelayMs + Context::_settingsFocusDurationMs + Context::_settingsTriggerDurationMs;
+            Core::Time tEnd = tStart + (Context::_intervalNShots - 1) * intervalDelayMs + Context::_timingsFocusDurationMs + Context::_timingsTriggerDurationMs;
 
             if (t < tStart) {
                 waiting = true;
@@ -500,9 +500,9 @@ int main() {
                     Context::_tTrigger = 0;
                 } else {
                     Core::Time tInInterval = (t - tStart) % intervalDelayMs;
-                    if (tInInterval < Context::_settingsFocusDurationMs) {
+                    if (tInInterval < Context::_timingsFocusDurationMs) {
                         focus = true;
-                    } else if (tInInterval < Context::_settingsFocusDurationMs + Context::_settingsTriggerDurationMs) {
+                    } else if (tInInterval < Context::_timingsFocusDurationMs + Context::_timingsTriggerDurationMs) {
                         trigger = true;
                     } else {
                         waiting = true;

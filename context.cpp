@@ -4,6 +4,8 @@
 
 int Context::_menuItemSelected = 0;
 int Context::_submenuItemSelected = 0;
+bool Context::_editingItem = false;
+int Context::_editingItemCursor = 0;
 bool Context::_btnOkPressed = false;
 bool Context::_submenuFocusHold = false;
 bool Context::_submenuTriggerHold = false;
@@ -16,9 +18,9 @@ unsigned int Context::_intervalDelayMs = 1000;
 bool Context::_intervalSync = true;
 int Context::_inputMode = GUI::SUBMENU_INPUT_MODE_PASSTHROUGH;
 bool Context::_inputSync = true;
-unsigned int Context::_settingsFocusDurationMs = 0;
-unsigned int Context::_settingsTriggerDurationMs = 100;
-bool Context::_settingsSync = true;
+unsigned int Context::_timingsFocusDurationMs = 0;
+unsigned int Context::_timingsTriggerDurationMs = 100;
+bool Context::_timingsSync = true;
 int Context::_syncChannel = 0;
 int Context::_brightness = 10;
 
@@ -44,9 +46,9 @@ void Context::read() {
         _intervalSync = static_cast<bool>(pageBuffer[i++]);
         _inputMode = static_cast<int>(pageBuffer[i++]);
         _inputSync = static_cast<bool>(pageBuffer[i++]);
-        _settingsFocusDurationMs = static_cast<unsigned int>(pageBuffer[i++]);
-        _settingsTriggerDurationMs = static_cast<unsigned int>(pageBuffer[i++]);
-        _settingsSync = static_cast<bool>(pageBuffer[i++]);
+        _timingsFocusDurationMs = static_cast<unsigned int>(pageBuffer[i++]);
+        _timingsTriggerDurationMs = static_cast<unsigned int>(pageBuffer[i++]);
+        _timingsSync = static_cast<bool>(pageBuffer[i++]);
         _syncChannel = static_cast<int>(pageBuffer[i++]);
     }
 }
@@ -64,9 +66,9 @@ void Context::save() {
     pageBuffer[i++] = static_cast<uint32_t>(_intervalSync);
     pageBuffer[i++] = static_cast<uint32_t>(_inputMode);
     pageBuffer[i++] = static_cast<uint32_t>(_inputSync);
-    pageBuffer[i++] = static_cast<uint32_t>(_settingsFocusDurationMs);
-    pageBuffer[i++] = static_cast<uint32_t>(_settingsTriggerDurationMs);
-    pageBuffer[i++] = static_cast<uint32_t>(_settingsSync);
+    pageBuffer[i++] = static_cast<uint32_t>(_timingsFocusDurationMs);
+    pageBuffer[i++] = static_cast<uint32_t>(_timingsTriggerDurationMs);
+    pageBuffer[i++] = static_cast<uint32_t>(_timingsSync);
     pageBuffer[i++] = static_cast<uint32_t>(_syncChannel);
     Flash::writeUserPage(pageBuffer);
 }
