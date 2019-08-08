@@ -27,11 +27,15 @@ const char MENU_LABELS[GUI::N_MENU_ITEMS][10] = {
 
 
 
-const int MENU_HEIGHT = 12;
+const int MENU_HEIGHT = 11;
+const int FOOTER_HEIGHT = 11;
 Core::Time _tMenuChange = 0;
 const int DELAY_MENU_LABEL = 500;
 Core::Time _tGUIInit = 0;
 const int DELAY_LOGO_INIT = 2000;
+
+const int N_BRIGHTNESS_LEVELS = 4;
+const int _brightnessValues[N_BRIGHTNESS_LEVELS] = {0, 10, 20, 255};
 
 
 void GUI::init() {
@@ -47,8 +51,8 @@ void GUI::init() {
 }
 
 void GUI::showMenu() {
-    // Clear the whole screen
-    OLED::clear();
+    // Clear the whole screen except the footer
+    OLED::clear(0, 0, OLED::WIDTH, OLED::HEIGHT - FOOTER_HEIGHT - 1);
 
     // Print tabs
     const int tabCenterX = (Context::_menuItemSelected + 1) * OLED::WIDTH / (N_MENU_ITEMS + 1);
@@ -82,7 +86,7 @@ void GUI::showMenu() {
     for (int i = 0; i < N_MENU_ITEMS; i++) {
         const Font::Char8 c = MENU_ICONS[i];
         OLED::setInverted(i == Context::_menuItemSelected && Context::_submenuItemSelected == 0);
-        OLED::printMedium((i + 1) * OLED::WIDTH / (N_MENU_ITEMS + 1) - c.width / 2, 2 + (i == Context::_menuItemSelected ? 1 : 0), c);
+        OLED::printMedium((i + 1) * OLED::WIDTH / (N_MENU_ITEMS + 1) - c.width / 2, 1 + (i == Context::_menuItemSelected ? 1 + (Context::_submenuItemSelected > 0 ? 1 : 0) : 0), c);
     }
 }
 
@@ -92,6 +96,72 @@ void GUI::setMenu(int menuItemSelected) {
     showMenu();
 
     _tMenuChange = Core::time();
+}
+
+void GUI::showFooter(bool trigger, bool focus, bool waiting, bool input) {
+    OLED::clear(0, OLED::HEIGHT - FOOTER_HEIGHT, OLED::WIDTH, FOOTER_HEIGHT);
+    OLED::rect(0, OLED::HEIGHT - FOOTER_HEIGHT, OLED::WIDTH, 1);
+    OLED::setInverted(false);
+    OLED::setSize(Font::Size::MEDIUM);
+
+    // Display battery indicator
+    //OLED::printInt(0, OLED::HEIGHT - FOOTER_HEIGHT + 2, Context::_vBat);
+    const int BAT_X = 0;
+    const int BAT_Y = OLED::HEIGHT - FOOTER_HEIGHT + 3;
+    const int BAT_N_BARS = 3;
+    const int BAT_BAR_WIDTH = 2;
+    const int BAT_WIDTH = 2 + BAT_N_BARS * BAT_BAR_WIDTH + (BAT_N_BARS - 1) + 2 + 1;
+    const int BAT_HEIGHT = 7;
+    const int BAT_LEVELS[BAT_N_BARS] = {3300, 3700, 4000};
+    for (int x = 0; x < BAT_WIDTH; x++) {
+        if (x == 0 || x == BAT_WIDTH - 2) {
+            for (int y = 1; y < BAT_HEIGHT - 1; y++) {
+                OLED::setPixel(BAT_X + x, BAT_Y + y);
+            }
+        } else if (x == BAT_WIDTH - 1) {
+            for (int y = 2; y < BAT_HEIGHT - 2; y++) {
+                OLED::setPixel(BAT_X + x, BAT_Y + y);
+            }
+        } else {
+            OLED::setPixel(BAT_X + x, BAT_Y);
+            OLED::setPixel(BAT_X + x, BAT_Y + BAT_HEIGHT - 1);
+        }
+    }
+    for (int i = 0; i < BAT_N_BARS; i++) {
+        if (Context::_vBat >= BAT_LEVELS[i]) {
+            for (int x = 0; x < BAT_BAR_WIDTH; x++) {
+                for (int y = 2; y < BAT_HEIGHT - 2; y++) {
+                    OLED::setPixel(BAT_X + 2 + i * BAT_BAR_WIDTH + i + x, BAT_Y + y);
+                }
+            }
+        } else {
+            break;
+        }
+    }
+
+    if (trigger || focus || waiting) {
+        OLED::printInt(30, OLED::HEIGHT - 8, Context::_shotsLeft);
+        OLED::print("/");
+        OLED::printInt(Context::_intervalNShots);
+        OLED::print(" left");
+        displayTime(OLED::WIDTH - 10, OLED::HEIGHT - 8, "", Context::_countdown - 1, false, false, 0, OLED::Alignment::RIGHT, Context::_countdown <= 10000);
+    }
+
+    // Show infos on the bottom right
+    if (trigger) { // Trigger status
+        Font::Char8 c = ICON_TRIGGER;
+        OLED::printMedium(OLED::WIDTH - c.width, OLED::HEIGHT - c.height, c);
+    } else if (focus) {
+        Font::Char8 c = ICON_FOCUS;
+        OLED::printMedium(OLED::WIDTH - c.width, OLED::HEIGHT - c.height, c);
+    } else if (waiting) {
+        Font::Char8 c = ICON_DELAY;
+        OLED::printMedium(OLED::WIDTH - c.width, OLED::HEIGHT - c.height, c);
+    }
+    if (input) { // Input
+        Font::Char8 c = ICON_INPUT;
+        OLED::printMedium(OLED::WIDTH - ICON_TRIGGER.width - 2 - c.width, OLED::HEIGHT - c.height, c);
+    }
 }
 
 void GUI::showMenuContent() {
@@ -105,65 +175,53 @@ void GUI::showMenuContent() {
     }
 
     // Clear the main region of the screen
-    OLED::clear(0, MENU_HEIGHT + 1, OLED::WIDTH, OLED::HEIGHT - (MENU_HEIGHT + 1));
+    OLED::clear(0, MENU_HEIGHT + 1, OLED::WIDTH, OLED::HEIGHT - MENU_HEIGHT - FOOTER_HEIGHT - 1);
+    OLED::setInverted(false);
 
     if (displayMenuLabel) {
         // Print label
         OLED::setSize(Font::Size::LARGE);
-        OLED::printCentered(OLED::WIDTH / 2, MENU_HEIGHT + (OLED::HEIGHT - MENU_HEIGHT) / 2 - 16 / 2, MENU_LABELS[Context::_menuItemSelected]);
+        OLED::printCentered(OLED::WIDTH / 2, MENU_HEIGHT + (OLED::HEIGHT - MENU_HEIGHT - FOOTER_HEIGHT) / 2 - 16 / 2, MENU_LABELS[Context::_menuItemSelected]);
 
     } else {
         OLED::setSize(Font::Size::MEDIUM);
-        const int buttonHeight = 15;
+        const int buttonHeight = 12;
 
         if (Context::_menuItemSelected == MENU_TRIGGER) {
             if (Context::_tFocus == 0) {
                 if (!Context::_submenuFocusHold) {
-                    OLED::button(2, MENU_HEIGHT + 3, OLED::WIDTH - 4, buttonHeight, "Focus", Context::_submenuItemSelected == SUBMENU_TRIGGER_FOCUS, Context::_submenuItemSelected == SUBMENU_TRIGGER_FOCUS && Context::_btnOkPressed, false, true);
+                    OLED::button(2, MENU_HEIGHT + 2, OLED::WIDTH - 4, buttonHeight, "Focus", Context::_submenuItemSelected == SUBMENU_TRIGGER_FOCUS, Context::_submenuItemSelected == SUBMENU_TRIGGER_FOCUS && Context::_btnOkPressed, false, true);
                 } else {
-                    OLED::button(2, MENU_HEIGHT + 3, OLED::WIDTH - 4, buttonHeight, "Focus Hold", Context::_submenuItemSelected == SUBMENU_TRIGGER_FOCUS, Context::_submenuItemSelected == SUBMENU_TRIGGER_FOCUS && Context::_btnOkPressed, true, false);
+                    OLED::button(2, MENU_HEIGHT + 2, OLED::WIDTH - 4, buttonHeight, "Focus Hold", Context::_submenuItemSelected == SUBMENU_TRIGGER_FOCUS, Context::_submenuItemSelected == SUBMENU_TRIGGER_FOCUS && Context::_btnOkPressed, true, false);
                 }
             } else {
-                OLED::button(2, MENU_HEIGHT + 3, OLED::WIDTH - 4, buttonHeight, "Stop", Context::_submenuItemSelected == SUBMENU_TRIGGER_FOCUS, Context::_submenuItemSelected == SUBMENU_TRIGGER_FOCUS && Context::_btnOkPressed);
+                OLED::button(2, MENU_HEIGHT + 2, OLED::WIDTH - 4, buttonHeight, "Stop", Context::_submenuItemSelected == SUBMENU_TRIGGER_FOCUS, Context::_submenuItemSelected == SUBMENU_TRIGGER_FOCUS && Context::_btnOkPressed);
             }
             if (Context::_tTrigger == 0) {
                 if (!Context::_submenuTriggerHold) {
-                    OLED::button(2, MENU_HEIGHT + 3 + buttonHeight + 2, OLED::WIDTH - 4, buttonHeight, "Trigger", Context::_submenuItemSelected == SUBMENU_TRIGGER_SHOOT, Context::_submenuItemSelected == SUBMENU_TRIGGER_SHOOT && Context::_btnOkPressed, false, true);
+                    OLED::button(2, MENU_HEIGHT + 2 + buttonHeight + 1, OLED::WIDTH - 4, buttonHeight, "Trigger", Context::_submenuItemSelected == SUBMENU_TRIGGER_SHOOT, Context::_submenuItemSelected == SUBMENU_TRIGGER_SHOOT && Context::_btnOkPressed, false, true);
                 } else {
-                    OLED::button(2, MENU_HEIGHT + 3 + buttonHeight + 2, OLED::WIDTH - 4, buttonHeight, "Trigger Hold", Context::_submenuItemSelected == SUBMENU_TRIGGER_SHOOT, Context::_submenuItemSelected == SUBMENU_TRIGGER_SHOOT && Context::_btnOkPressed, true, false);
+                    OLED::button(2, MENU_HEIGHT + 2 + buttonHeight + 1, OLED::WIDTH - 4, buttonHeight, "Trigger Hold", Context::_submenuItemSelected == SUBMENU_TRIGGER_SHOOT, Context::_submenuItemSelected == SUBMENU_TRIGGER_SHOOT && Context::_btnOkPressed, true, false);
                 }
             } else {
-                OLED::button(2, MENU_HEIGHT + 3 + buttonHeight + 2, OLED::WIDTH - 4, buttonHeight, "Stop", Context::_submenuItemSelected == SUBMENU_TRIGGER_SHOOT, Context::_submenuItemSelected == SUBMENU_TRIGGER_SHOOT && Context::_btnOkPressed);
+                OLED::button(2, MENU_HEIGHT + 2 + buttonHeight + 1, OLED::WIDTH - 4, buttonHeight, "Stop", Context::_submenuItemSelected == SUBMENU_TRIGGER_SHOOT, Context::_submenuItemSelected == SUBMENU_TRIGGER_SHOOT && Context::_btnOkPressed);
             }
-            OLED::checkbox(2, OLED::HEIGHT - buttonHeight, OLED::WIDTH - 4, buttonHeight, "Sync", Context::_submenuItemSelected == SUBMENU_TRIGGER_SYNC, Context::_submenuItemSelected == SUBMENU_TRIGGER_SYNC && Context::_btnOkPressed, Context::_triggerSync);
+            OLED::checkbox(2, MENU_HEIGHT + 2 + 2 * (buttonHeight + 1), OLED::WIDTH - 4, buttonHeight, "Sync", Context::_submenuItemSelected == SUBMENU_TRIGGER_SYNC, Context::_submenuItemSelected == SUBMENU_TRIGGER_SYNC && Context::_btnOkPressed, Context::_triggerSync);
 
         } else if (Context::_menuItemSelected == MENU_DELAY) {
-            displayTimeButton(2, MENU_HEIGHT + 3, OLED::WIDTH - 4, buttonHeight, "Delay : ", Context::_delayMs, Context::_submenuItemSelected == SUBMENU_DELAY_DELAY, Context::_editingItem, Context::_editingItemCursor);
-            OLED::checkbox(2, OLED::HEIGHT - buttonHeight, OLED::WIDTH - 4, buttonHeight, "Sync", Context::_submenuItemSelected == SUBMENU_DELAY_SYNC, Context::_submenuItemSelected == SUBMENU_DELAY_SYNC && Context::_btnOkPressed, Context::_delaySync);
+            displayTimeButton(2, MENU_HEIGHT + 2, OLED::WIDTH - 4, buttonHeight, "Delay : ", Context::_delayMs, Context::_submenuItemSelected == SUBMENU_DELAY_DELAY, Context::_editingItem, Context::_editingItemCursor);
+            OLED::checkbox(2, MENU_HEIGHT + 2 + buttonHeight + 1, OLED::WIDTH - 4, buttonHeight, "Sync", Context::_submenuItemSelected == SUBMENU_DELAY_SYNC, Context::_submenuItemSelected == SUBMENU_DELAY_SYNC && Context::_btnOkPressed, Context::_delaySync);
 
         } else if (Context::_menuItemSelected == MENU_INTERVAL) {
-            /*char strShots[12] = "Shots : \0\0\0";
-            if (Context::_intervalNShots >= 100) {
-                strShots[8] = ((Context::_intervalNShots / 100) % 10) + '0';
-                strShots[9] = ((Context::_intervalNShots / 10) % 10) + '0';
-                strShots[10] = (Context::_intervalNShots % 10) + '0';
-            } else if (Context::_intervalNShots >= 10) {
-                strShots[8] = ((Context::_intervalNShots / 10) % 10) + '0';
-                strShots[9] = (Context::_intervalNShots % 10) + '0';
-            } else {
-                strShots[8] = (Context::_intervalNShots % 10) + '0';
-            }
-            OLED::button(2, MENU_HEIGHT + 3, OLED::WIDTH - 4, buttonHeight, strShots, Context::_submenuItemSelected == SUBMENU_INTERVAL_SHOTS, false);*/
+            displayIntButton(2, MENU_HEIGHT + 2, OLED::WIDTH - 4, buttonHeight, "Shots : ", "", Context::_intervalNShots, 4, Context::_submenuItemSelected == SUBMENU_INTERVAL_SHOTS, Context::_editingItem, Context::_editingItemCursor);
+            displayTimeButton(2, MENU_HEIGHT + 2 + buttonHeight + 1, OLED::WIDTH - 4, buttonHeight, "Interval : ", Context::_intervalDelayMs, Context::_submenuItemSelected == SUBMENU_INTERVAL_DELAY, Context::_editingItem, Context::_editingItemCursor);
 
-            displayIntButton(2, MENU_HEIGHT + 3, OLED::WIDTH - 4, buttonHeight, "Shots : ", "", Context::_intervalNShots, 4, Context::_submenuItemSelected == SUBMENU_INTERVAL_SHOTS, Context::_editingItem, Context::_editingItemCursor);
-            displayTimeButton(2, MENU_HEIGHT + 3 + buttonHeight + 2, OLED::WIDTH - 4, buttonHeight, "Interval : ", Context::_intervalDelayMs, Context::_submenuItemSelected == SUBMENU_INTERVAL_DELAY, Context::_editingItem, Context::_editingItemCursor);
-
-            OLED::checkbox(2, OLED::HEIGHT - buttonHeight, OLED::WIDTH - 4, buttonHeight, "Sync", Context::_submenuItemSelected == SUBMENU_INTERVAL_SYNC, Context::_submenuItemSelected == SUBMENU_INTERVAL_SYNC && Context::_btnOkPressed, Context::_intervalSync);
+            OLED::checkbox(2, MENU_HEIGHT + 2 + 2 * (buttonHeight + 1), OLED::WIDTH - 4, buttonHeight, "Sync", Context::_submenuItemSelected == SUBMENU_INTERVAL_SYNC, Context::_submenuItemSelected == SUBMENU_INTERVAL_SYNC && Context::_btnOkPressed, Context::_intervalSync);
             
         } else if (Context::_menuItemSelected == MENU_TIMINGS) {
-            displayTimeButton(2, MENU_HEIGHT + 3, OLED::WIDTH - 4, buttonHeight, "Focus : ", Context::_timingsFocusDurationMs, Context::_submenuItemSelected == SUBMENU_TIMINGS_FOCUS_DURATION, Context::_editingItem, Context::_editingItemCursor);
-            displayTimeButton(2, MENU_HEIGHT + 3 + buttonHeight + 2, OLED::WIDTH - 4, buttonHeight, "Trigger : ", Context::_timingsTriggerDurationMs, Context::_submenuItemSelected == SUBMENU_TIMINGS_TRIGGER_DURATION, Context::_editingItem, Context::_editingItemCursor);
-            OLED::checkbox(2, OLED::HEIGHT - buttonHeight, OLED::WIDTH - 4, buttonHeight, "SYNC", Context::_submenuItemSelected == SUBMENU_TIMINGS_SYNC, Context::_submenuItemSelected == SUBMENU_TIMINGS_SYNC && Context::_btnOkPressed, Context::_timingsSync);
+            displayTimeButton(2, MENU_HEIGHT + 2, OLED::WIDTH - 4, buttonHeight, "Focus : ", Context::_timingsFocusDurationMs, Context::_submenuItemSelected == SUBMENU_TIMINGS_FOCUS_DURATION, Context::_editingItem, Context::_editingItemCursor);
+            displayTimeButton(2, MENU_HEIGHT + 2 + buttonHeight + 1, OLED::WIDTH - 4, buttonHeight, "Trigger : ", Context::_timingsTriggerDurationMs, Context::_submenuItemSelected == SUBMENU_TIMINGS_TRIGGER_DURATION, Context::_editingItem, Context::_editingItemCursor);
+            OLED::checkbox(2, MENU_HEIGHT + 2 + 2 * (buttonHeight + 1), OLED::WIDTH - 4, buttonHeight, "Sync", Context::_submenuItemSelected == SUBMENU_TIMINGS_SYNC, Context::_submenuItemSelected == SUBMENU_TIMINGS_SYNC && Context::_btnOkPressed, Context::_timingsSync);
 
         } else if (Context::_menuItemSelected == MENU_INPUT) {
             char str[26] = "";
@@ -176,11 +234,21 @@ void GUI::showMenuContent() {
             } else if (Context::_inputMode == SUBMENU_INPUT_MODE_PASSTHROUGH) {
                 strncpy(str, "Mode : passthrough", 26);
             }
-            OLED::button(2, MENU_HEIGHT + 3, OLED::WIDTH - 4, buttonHeight, str, Context::_submenuItemSelected == SUBMENU_INPUT_MODE, false, true, true);
+            OLED::button(2, MENU_HEIGHT + 2, OLED::WIDTH - 4, buttonHeight, str, Context::_submenuItemSelected == SUBMENU_INPUT_MODE, false, true, true);
 
-            OLED::checkbox(2, OLED::HEIGHT - buttonHeight, OLED::WIDTH - 4, buttonHeight, "Sync", Context::_submenuItemSelected == SUBMENU_INPUT_SYNC, Context::_submenuItemSelected == SUBMENU_INPUT_SYNC && Context::_btnOkPressed, Context::_inputSync);
+            OLED::checkbox(2, MENU_HEIGHT + 2 + buttonHeight + 1, OLED::WIDTH - 4, buttonHeight, "Sync", Context::_submenuItemSelected == SUBMENU_INPUT_SYNC, Context::_submenuItemSelected == SUBMENU_INPUT_SYNC && Context::_btnOkPressed, Context::_inputSync);
 
         } else if (Context::_menuItemSelected == MENU_SETTINGS) {
+            char str[22] = "";
+            if (Context::_radio == SUBMENU_SETTINGS_RADIO_DISABLED) {
+                strncpy(str, "Radio : disabled", 22);
+            } else if (Context::_radio == SUBMENU_SETTINGS_RADIO_RX_ONLY) {
+                strncpy(str, "Radio : receiver only", 22);
+            } else if (Context::_radio == SUBMENU_SETTINGS_RADIO_ENABLED) {
+                strncpy(str, "Radio : enabled", 22);
+            }
+            OLED::button(2, MENU_HEIGHT + 2, OLED::WIDTH - 4, buttonHeight, str, Context::_submenuItemSelected == SUBMENU_SETTINGS_RADIO, false, Context::_radio != SUBMENU_SETTINGS_RADIO_DISABLED, Context::_radio != SUBMENU_SETTINGS_RADIO_ENABLED);
+
             char strChannel[13] = "Channel :   ";
             if (Context::_syncChannel >= 10) {
                 strChannel[10] = ((Context::_syncChannel / 10) % 10) + '0';
@@ -188,16 +256,13 @@ void GUI::showMenuContent() {
             } else {
                 strChannel[10] = Context::_syncChannel + '0';
             }
-            OLED::button(2, MENU_HEIGHT + 3, OLED::WIDTH - 4, buttonHeight, strChannel, Context::_submenuItemSelected == SUBMENU_SETTINGS_CHANNEL, false);
+            OLED::button(2, MENU_HEIGHT + 2 + buttonHeight + 1, OLED::WIDTH - 4, buttonHeight, strChannel, Context::_submenuItemSelected == SUBMENU_SETTINGS_CHANNEL, false);
 
-            char strBrightness[16] = "Brightness :   ";
-            if (Context::_brightness == 10) {
-                strBrightness[13] = '1';
-                strBrightness[14] = '0';
-            } else {
-                strBrightness[14] = Context::_brightness + '0';
-            }
-            OLED::button(2, MENU_HEIGHT + 3 + buttonHeight + 2, OLED::WIDTH - 4, buttonHeight, strBrightness, Context::_submenuItemSelected == SUBMENU_SETTINGS_BRIGHTNESS, false);
+            OLED::button(2, MENU_HEIGHT + 2 + 2 * (buttonHeight + 1), OLED::WIDTH - 4, buttonHeight, "", Context::_submenuItemSelected == SUBMENU_SETTINGS_BRIGHTNESS, false, Context::_brightness > 0, Context::_brightness < N_BRIGHTNESS_LEVELS - 1);
+            const char* label = "Brightness : ";
+            int width = OLED::textWidth(label) + 14;
+            OLED::print((OLED::WIDTH - width) / 2, MENU_HEIGHT + 2 + 2 * (buttonHeight + 1) + (buttonHeight - 8) / 2, label);
+            OLED::progressbar(OLED::cursorX(), OLED::cursorY() + 1, 14, 7, Context::_brightness * 100 / (N_BRIGHTNESS_LEVELS - 1));
         }
     }
 }
@@ -216,6 +281,7 @@ bool GUI::handleButtons() {
             } else {
                 if (Context::_submenuItemSelected == SUBMENU_DELAY_DELAY) {
                     incrementTimeButton(Context::_delayMs);
+                    menuModified = MENU_DELAY;
                 }
             }
 
@@ -225,8 +291,10 @@ bool GUI::handleButtons() {
             } else {
                 if (Context::_submenuItemSelected == SUBMENU_INTERVAL_SHOTS) {
                     incrementIntButton(Context::_intervalNShots, 4);
+                    menuModified = MENU_INTERVAL;
                 } else if (Context::_submenuItemSelected == SUBMENU_INTERVAL_DELAY) {
                     incrementTimeButton(Context::_intervalDelayMs);
+                    menuModified = MENU_INTERVAL;
                 }
             }
 
@@ -236,8 +304,10 @@ bool GUI::handleButtons() {
             } else {
                 if (Context::_submenuItemSelected == SUBMENU_TIMINGS_FOCUS_DURATION) {
                     incrementTimeButton(Context::_timingsFocusDurationMs);
+                    menuModified = MENU_TIMINGS;
                 } else if (Context::_submenuItemSelected == SUBMENU_TIMINGS_TRIGGER_DURATION) {
                     incrementTimeButton(Context::_timingsTriggerDurationMs);
+                    menuModified = MENU_TIMINGS;
                 }
             }
 
@@ -263,6 +333,7 @@ bool GUI::handleButtons() {
             } else {
                 if (Context::_submenuItemSelected == SUBMENU_DELAY_DELAY) {
                     decrementTimeButton(Context::_delayMs);
+                    menuModified = MENU_DELAY;
                 }
             }
 
@@ -272,8 +343,10 @@ bool GUI::handleButtons() {
             } else {
                 if (Context::_submenuItemSelected == SUBMENU_INTERVAL_SHOTS) {
                     decrementIntButton(Context::_intervalNShots, 4, 1);
+                    menuModified = MENU_INTERVAL;
                 } else if (Context::_submenuItemSelected == SUBMENU_INTERVAL_DELAY) {
                     decrementTimeButton(Context::_intervalDelayMs);
+                    menuModified = MENU_INTERVAL;
                 }
             }
 
@@ -283,8 +356,10 @@ bool GUI::handleButtons() {
             } else {
                 if (Context::_submenuItemSelected == SUBMENU_TIMINGS_FOCUS_DURATION) {
                     decrementTimeButton(Context::_timingsFocusDurationMs);
+                    menuModified = MENU_TIMINGS;
                 } else if (Context::_submenuItemSelected == SUBMENU_TIMINGS_TRIGGER_DURATION) {
                     decrementTimeButton(Context::_timingsTriggerDurationMs);
+                    menuModified = MENU_TIMINGS;
                 }
             }
 
@@ -327,7 +402,6 @@ bool GUI::handleButtons() {
                         }
                     }
                 }
-                menuModified = MENU_DELAY;
 
             } else if (Context::_menuItemSelected == MENU_INTERVAL) {
                 if (Context::_submenuItemSelected == SUBMENU_INTERVAL_SHOTS) {
@@ -349,7 +423,6 @@ bool GUI::handleButtons() {
                         }
                     }
                 }
-                menuModified = MENU_INTERVAL;
 
             } else if (Context::_menuItemSelected == MENU_TIMINGS) {
                 if (Context::_submenuItemSelected == SUBMENU_TIMINGS_FOCUS_DURATION || Context::_submenuItemSelected == SUBMENU_TIMINGS_TRIGGER_DURATION) {
@@ -362,7 +435,6 @@ bool GUI::handleButtons() {
                         }
                     }
                 }
-                menuModified = MENU_TIMINGS;
 
             } else if (Context::_menuItemSelected == MENU_INPUT) {
                 if (Context::_submenuItemSelected == SUBMENU_INPUT_MODE) {
@@ -375,14 +447,18 @@ bool GUI::handleButtons() {
                 menuModified = MENU_INPUT;
 
             } else if (Context::_menuItemSelected == MENU_SETTINGS) {
-                if (Context::_submenuItemSelected == SUBMENU_SETTINGS_CHANNEL) {
+                if (Context::_submenuItemSelected == SUBMENU_SETTINGS_RADIO) {
+                    if (Context::_radio > 0) {
+                        Context::_radio--;
+                    }
+                } else if (Context::_submenuItemSelected == SUBMENU_SETTINGS_CHANNEL) {
                     if (Context::_syncChannel > 0) {
                         Context::_syncChannel--;
                     }
                 } else if (Context::_submenuItemSelected == SUBMENU_SETTINGS_BRIGHTNESS) {
                     if (Context::_brightness > 0) {
                         Context::_brightness--;
-                        OLED::setContrast(Context::_brightness * 25);
+                        updateBrightness();
                     }
                 }
                 menuModified = MENU_SETTINGS;
@@ -418,7 +494,6 @@ bool GUI::handleButtons() {
                         }
                     }
                 }
-                menuModified = MENU_DELAY;
 
             } else if (Context::_menuItemSelected == MENU_INTERVAL) {
                 if (Context::_submenuItemSelected == SUBMENU_INTERVAL_SHOTS) {
@@ -440,7 +515,6 @@ bool GUI::handleButtons() {
                         }
                     }
                 }
-                menuModified = MENU_INTERVAL;
                 
             } else if (Context::_menuItemSelected == MENU_TIMINGS) {
                 if (Context::_submenuItemSelected == SUBMENU_TIMINGS_FOCUS_DURATION || Context::_submenuItemSelected == SUBMENU_TIMINGS_TRIGGER_DURATION) {
@@ -453,7 +527,6 @@ bool GUI::handleButtons() {
                         }
                     }
                 }
-                menuModified = MENU_TIMINGS;
 
             } else if (Context::_menuItemSelected == MENU_INPUT) {
                 if (Context::_submenuItemSelected == SUBMENU_INPUT_MODE) {
@@ -466,14 +539,18 @@ bool GUI::handleButtons() {
                 menuModified = MENU_INPUT;
 
             } else if (Context::_menuItemSelected == MENU_SETTINGS) {
-                if (Context::_submenuItemSelected == SUBMENU_SETTINGS_CHANNEL) {
+                if (Context::_submenuItemSelected == SUBMENU_SETTINGS_RADIO) {
+                    if (Context::_radio < SUBMENU_SETTINGS_RADIO_ENABLED) {
+                        Context::_radio++;
+                    }
+                } else if (Context::_submenuItemSelected == SUBMENU_SETTINGS_CHANNEL) {
                     if (Context::_syncChannel < Sync::N_CHANNELS) {
                         Context::_syncChannel++;
                     }
                 } else if (Context::_submenuItemSelected == SUBMENU_SETTINGS_BRIGHTNESS) {
-                    if (Context::_brightness < 10) {
+                    if (Context::_brightness < N_BRIGHTNESS_LEVELS - 1) {
                         Context::_brightness++;
-                        OLED::setContrast(Context::_brightness * 25);
+                        updateBrightness();
                     }
                 }
                 menuModified = MENU_SETTINGS;
@@ -672,12 +749,18 @@ bool GUI::handleButtons() {
     return buttonPressed;
 }
 
-void GUI::update(bool refresh, bool trigger, bool focus, bool waiting, bool input) {
+void GUI::update(bool refresh, bool refreshFooter, bool trigger, bool focus, bool waiting, bool input) {
     // Hide init logo after timeout
-    if (_tGUIInit > 0 && Core::time() >= _tGUIInit + DELAY_LOGO_INIT) {
-        GUI::showMenu();
-        _tGUIInit = 0;
-        refresh = true;
+    if (_tGUIInit > 0) {
+        if (Core::time() >= _tGUIInit + DELAY_LOGO_INIT) {
+            GUI::showMenu();
+            _tGUIInit = 0;
+            refresh = true;
+            refreshFooter = true;
+        } else {
+            refresh = false;
+            refreshFooter = false;
+        }
     }
     
     // Hide menu label after timeout
@@ -685,29 +768,18 @@ void GUI::update(bool refresh, bool trigger, bool focus, bool waiting, bool inpu
         refresh = true;
     }
 
-    // Update menu display
+    // Update menu content
     if (refresh) {
         GUI::showMenuContent();
     }
 
-    // Show infos on the bottom right
-    if (trigger) { // Trigger status
-        Font::Char8 c = ICON_TRIGGER;
-        OLED::printMedium(OLED::WIDTH - c.width, OLED::HEIGHT - c.height, c);
-    } else if (focus) {
-        Font::Char8 c = ICON_FOCUS;
-        OLED::printMedium(OLED::WIDTH - c.width, OLED::HEIGHT - c.height, c);
-    } else if (waiting) {
-        Font::Char8 c = ICON_DELAY;
-        OLED::printMedium(OLED::WIDTH - c.width, OLED::HEIGHT - c.height, c);
-    }
-    if (input) { // Input
-        Font::Char8 c = ICON_INPUT;
-        OLED::printMedium(OLED::WIDTH - ICON_TRIGGER.width - 2 - c.width, OLED::HEIGHT - c.height, c);
+    // Update footer
+    if (refreshFooter) {
+        GUI::showFooter(trigger, focus, waiting, input);
     }
 
     // Update screen
-    if (refresh) {
+    if (refresh || refreshFooter) {
         OLED::refresh();
     }
 }
@@ -716,10 +788,18 @@ void GUI::displayTimeButton(unsigned int x, unsigned int y, unsigned int width, 
     // Display an empty button
     OLED::button(x, y, width, height, "", selected, false);
 
+    // Display the time in the label
+    displayTime(x + width / 2, y + (height - 8) / 2, label, valueMs, selected, editing, editingCursor, OLED::Alignment::CENTERED);
+}
+
+void GUI::displayTime(unsigned int x, unsigned int y, const char* label, unsigned int valueMs, bool selected, bool editing, int editingCursor, OLED::Alignment alignment, bool displayFrac) {
     // Compute the text length
     int textWidth = OLED::textWidth(label);
     if (selected && editing) {
-        textWidth += OLED::textWidth("00h00m00.0s");
+        textWidth += OLED::textWidth("00h00m00s");
+        if (displayFrac) {
+            textWidth += OLED::textWidth(".0");
+        }
         textWidth += 2; // 1px each side of the selected field
     } else {
         if (valueMs >= 10 * 60 * 60 * 1000) {
@@ -738,18 +818,25 @@ void GUI::displayTimeButton(unsigned int x, unsigned int y, unsigned int width, 
             textWidth += OLED::textWidth("0");
         }
         textWidth += OLED::textWidth("00");
-        if (valueMs % 1000 != 0) {
+        if (displayFrac && valueMs % 1000 != 0) {
             textWidth += OLED::textWidth(".0");
         }
         textWidth += OLED::textWidth("s");
     }
-    int xText = x + (width - textWidth) / 2;
+    int xText = 0;
+    if (alignment == OLED::Alignment::LEFT) {
+        xText = x;
+    } else if (alignment == OLED::Alignment::CENTERED) {
+        xText = x - textWidth / 2;
+    } else if (alignment == OLED::Alignment::RIGHT) {
+        xText = x - textWidth;
+    }
     if (xText < 0) {
         xText = 0;
     }
 
     // Display the label
-    OLED::print(xText, y + (height - 8) / 2, label);
+    OLED::print(xText, y, label);
 
     // Display the time, with the cursor if editing is enabled
     const unsigned int dividers[] = {100, 1000, 10 * 1000, 60 * 1000, 10 * 60 * 1000, 60 * 60 * 1000, 10 * 60 * 60 * 1000};
@@ -773,7 +860,7 @@ void GUI::displayTimeButton(unsigned int x, unsigned int y, unsigned int width, 
         } else {
             start = 1;
         }
-        if (valueMs % 1000 != 0) {
+        if (displayFrac && valueMs % 1000 != 0) {
             end = 0;
         } else {
             end = 1;
@@ -930,4 +1017,8 @@ void GUI::showExitScreen() {
     OLED::printXXLarge((OLED::WIDTH - 64) / 2, (OLED::HEIGHT - 64) / 2, ICON_SILICA_XXL);
     OLED::printCentered(OLED::WIDTH / 2, 54, "Bye!");
     OLED::refresh();
+}
+
+void GUI::updateBrightness() {
+    OLED::setContrast(_brightnessValues[Context::_brightness]);
 }

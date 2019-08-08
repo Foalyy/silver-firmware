@@ -3,6 +3,7 @@
 #include <pm.h>
 #include <gpio.h>
 #include <spi.h>
+#include <adc.h>
 #include <stdio.h>
 #include "silver.h"
 #include "gui.h"
@@ -19,6 +20,7 @@ const int OLED_TURNOFF_DELAY = 0; // 10min
 const int TURNON_DELAY = 1000;
 const int TURNOFF_DELAY = 1000;
 const int LED_BLINK_DELAY = 2000;
+const unsigned long DELAY_VBAT_MEAS = 10000;
 
 int main() {
     // Init the microcontroller
@@ -57,6 +59,11 @@ int main() {
     GPIO::enableOutput(PIN_LED_FOCUS, GPIO::HIGH);
     GPIO::enableOutput(PIN_LED_INPUT, GPIO::HIGH);
 
+    // Init the battery voltage measurement
+    GPIO::enableOutput(PIN_VBAT_MEAS_CMD, GPIO::LOW);
+    ADC::setPin(ADC_VBAT, PIN_VBAT_MEAS);
+    ADC::enable(ADC_VBAT);
+
     // Init the sync module
     if (!Sync::init()) {
         warningHandler();
@@ -74,6 +81,7 @@ int main() {
 
     // Read settings
     Context::read();
+    GUI::updateBrightness();
 
 
     // Current state
@@ -99,8 +107,10 @@ int main() {
     bool isRemoteTriggerHoldFromUSB = false;
     Core::Time tRemoteTriggerHold = 0;
     Core::Time tTriggerHoldKeepalive = 0;
+    Core::Time tRefreshFooter = 0;
     bool screenDimmed = false;
     bool screenOff = false;
+    Core::Time tVbatMeas = 0;
 
     // Main loop
     while (1) {
@@ -108,6 +118,7 @@ int main() {
         bool focus = false;
         bool trigger = false;
         bool refresh = false;
+        bool refreshFooter = false;
 
         // Power button
         bool btnPw = GPIO::get(PIN_BTN_PW);
@@ -492,6 +503,8 @@ int main() {
 
             if (t < tStart) {
                 waiting = true;
+                Context::_shotsLeft = Context::_intervalNShots;
+                Context::_countdown = tStart - t;
                 if (tWaitingLed == 0) {
                     tWaitingLed = Core::time();
                 }
@@ -499,13 +512,19 @@ int main() {
                 if (t >= tEnd) {
                     Context::_tTrigger = 0;
                 } else {
+                    unsigned int intervalNumber = (t - tStart) / intervalDelayMs;
                     Core::Time tInInterval = (t - tStart) % intervalDelayMs;
+                    Context::_shotsLeft = Context::_intervalNShots - intervalNumber;
                     if (tInInterval < Context::_timingsFocusDurationMs) {
                         focus = true;
+                        Context::_countdown = Context::_timingsFocusDurationMs - tInInterval;
                     } else if (tInInterval < Context::_timingsFocusDurationMs + Context::_timingsTriggerDurationMs) {
                         trigger = true;
+                        Context::_countdown = Context::_timingsFocusDurationMs + Context::_timingsTriggerDurationMs - tInInterval;
                     } else {
                         waiting = true;
+                        Context::_shotsLeft -= 1;
+                        Context::_countdown = intervalDelayMs - tInInterval;
                     }
                 }
             }
@@ -546,11 +565,22 @@ int main() {
                 tWaitingLed += DELAY;
             }
         } else if (trigger) {
-            // Off
+            // On
             GPIO::set(PIN_LED_TRIGGER, GPIO::LOW);
         } else {
-            // On
+            // Off
             GPIO::set(PIN_LED_TRIGGER, GPIO::HIGH);
+        }
+
+        // Measure battery voltage
+        t = Core::time();
+        if (tVbatMeas == 0 || t >= tVbatMeas + DELAY_VBAT_MEAS) {
+            GPIO::set(PIN_VBAT_MEAS_CMD, GPIO::HIGH);
+            Core::sleep(10);
+            Context::_vBat = 2 * ADC::read(ADC_VBAT);
+            GPIO::set(PIN_VBAT_MEAS_CMD, GPIO::LOW);
+            refreshFooter = true;
+            tVbatMeas = t;
         }
 
         // Dim then turn off the screen in case of inactivity
@@ -568,13 +598,17 @@ int main() {
             screenOff = false;
         }
 
-        // Refresh the screen when there is a change of state
+        // Refresh the footer when there is a change of state
+        if ((waiting || focus || trigger) && t > tRefreshFooter + (Context::_countdown < 10000 ? 100 : 1000)) {
+            refreshFooter = true;
+            tRefreshFooter = t;
+        }
         if (lastWaiting != waiting || lastFocus != focus || lastTrigger != trigger || lastInput != inputStatus) {
-            refresh = true;
+            refreshFooter = true;
         }
 
         // Update the display
-        GUI::update(refresh, trigger, focus, waiting, inputStatus);
+        GUI::update(refresh, refreshFooter, trigger, focus, waiting, inputStatus);
 
         Core::sleep(10);
 

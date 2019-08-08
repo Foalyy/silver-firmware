@@ -22,12 +22,16 @@ unsigned int Context::_timingsFocusDurationMs = 0;
 unsigned int Context::_timingsTriggerDurationMs = 100;
 bool Context::_timingsSync = true;
 int Context::_syncChannel = 0;
-int Context::_brightness = 10;
+int Context::_radio = GUI::SUBMENU_SETTINGS_RADIO_ENABLED;
+int Context::_brightness = 3;
 
 Core::Time Context::_tFocus = 0;
 Core::Time Context::_tTrigger = 0;
 bool Context::_skipDelay = false;
+int Context::_shotsLeft = 0;
+unsigned int Context::_countdown = 0;
 
+int Context::_vBat = 0;
 
 void Context::read() {
     uint32_t pageBuffer[Flash::FLASH_PAGE_SIZE_WORDS];
@@ -50,6 +54,8 @@ void Context::read() {
         _timingsTriggerDurationMs = static_cast<unsigned int>(pageBuffer[i++]);
         _timingsSync = static_cast<bool>(pageBuffer[i++]);
         _syncChannel = static_cast<int>(pageBuffer[i++]);
+        _radio = static_cast<int>(pageBuffer[i++]);
+        _brightness = static_cast<int>(pageBuffer[i++]);
     }
 }
 
@@ -70,5 +76,7 @@ void Context::save() {
     pageBuffer[i++] = static_cast<uint32_t>(_timingsTriggerDurationMs);
     pageBuffer[i++] = static_cast<uint32_t>(_timingsSync);
     pageBuffer[i++] = static_cast<uint32_t>(_syncChannel);
+    pageBuffer[i++] = static_cast<uint32_t>(_radio);
+    pageBuffer[i++] = static_cast<uint32_t>(_brightness);
     Flash::writeUserPage(pageBuffer);
 }

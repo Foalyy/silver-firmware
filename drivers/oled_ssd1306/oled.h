@@ -34,6 +34,12 @@ namespace OLED {
         R270,
     };
 
+    enum class Alignment {
+        LEFT,
+        CENTERED,
+        RIGHT
+    };
+
     void initScreen(SPI::Peripheral spi, GPIO::Pin pinDC, GPIO::Pin pinRES);
     void enable();
     void disable();

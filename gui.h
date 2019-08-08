@@ -2,6 +2,7 @@
 #define _GUI_H_
 
 #include <core.h>
+#include "drivers/oled_ssd1306/oled.h"
 #include "context.h"
 
 namespace GUI {
@@ -33,22 +34,30 @@ namespace GUI {
     const int SUBMENU_INPUT_MODE_PASSTHROUGH = 3;
     const int SUBMENU_INPUT_SYNC = 2;
     const int MENU_SETTINGS = 5;
-    const int SUBMENU_SETTINGS_CHANNEL = 1;
-    const int SUBMENU_SETTINGS_BRIGHTNESS = 2;
+    const int SUBMENU_SETTINGS_RADIO = 1;
+    const int SUBMENU_SETTINGS_RADIO_DISABLED = 0;
+    const int SUBMENU_SETTINGS_RADIO_RX_ONLY = 1;
+    const int SUBMENU_SETTINGS_RADIO_ENABLED = 2;
+    const int SUBMENU_SETTINGS_CHANNEL = 2;
+    const int SUBMENU_SETTINGS_BRIGHTNESS = 3;
+
 
     void init();
     void setMenu(int menuItemSelected);
     void showMenu();
+    void showFooter(bool trigger, bool focus, bool waiting, bool input);
     void showMenuContent();
     bool handleButtons();
-    void update(bool refresh, bool trigger, bool focus, bool waiting, bool input);
+    void update(bool refresh, bool refreshFooter, bool trigger, bool focus, bool waiting, bool input);
     void displayTimeButton(unsigned int x, unsigned int y, unsigned int width, unsigned int height, const char* label, unsigned int valueMs, bool selected=false, bool editing=false, int editingCursor=0);
+    void displayTime(unsigned int x, unsigned int y, const char* label, unsigned int valueMs, bool selected=false, bool editing=false, int editingCursor=0, OLED::Alignment alignment=OLED::Alignment::LEFT, bool displayFrac=true);
     void incrementTimeButton(unsigned int& valueMs);
     void decrementTimeButton(unsigned int& valueMs);
     void displayIntButton(unsigned int x, unsigned int y, unsigned int width, unsigned int height, const char* label, const char* labelUnit, unsigned int value, unsigned int length, bool selected, bool editing, int editingCursor);
     void incrementIntButton(int& value, unsigned int length);
     void decrementIntButton(int& value, unsigned int length, int min=0);
     void showExitScreen();
+    void updateBrightness();
 
 }
 

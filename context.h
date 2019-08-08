@@ -25,11 +25,16 @@ namespace Context {
     extern unsigned int _timingsTriggerDurationMs;
     extern bool _timingsSync;
     extern int _syncChannel;
+    extern int _radio;
     extern int _brightness;
 
     extern Core::Time _tFocus;
     extern Core::Time _tTrigger;
     extern bool _skipDelay;
+    extern int _shotsLeft;
+    extern unsigned int _countdown;
+
+    extern int _vBat;
 
     void read();
     void save();

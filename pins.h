@@ -68,6 +68,7 @@ const GPIO::Pin PIN_PW_EN = GPIO::PA00;
 
 // Battery voltage measurement
 const GPIO::Pin PIN_VBAT_MEAS = {GPIO::Port::A,  4, GPIO::Periph::A};
+const int ADC_VBAT = 0;
 const GPIO::Pin PIN_VBAT_MEAS_CMD = GPIO::PA05;
 
 // Aliases for features of the jack ports

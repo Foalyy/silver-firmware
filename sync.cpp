@@ -13,6 +13,7 @@ namespace Sync {
     uint8_t _rxBuffer[BUFFER_RX_SIZE];
     int _rxSize = 0;
     bool _commandAvailable = false;
+    bool _rxEnabled = false;
 
     bool init() {
         LoRa::setPin(LoRa::PinFunction::RESET, PIN_LORA_RESET);
@@ -25,13 +26,25 @@ namespace Sync {
         LoRa::setCodingRate(LoRa::CodingRate::RATE_4_8);
         LoRa::setBandwidth(LoRa::Bandwidth::BW_125kHz);
         LoRa::setExplicitHeader(true);
-        LoRa::enableRx();
+        if (Context::_radio != GUI::SUBMENU_SETTINGS_RADIO_DISABLED) {
+            LoRa::enableRx();
+            _rxEnabled = true;
+        }
         return true;
     }
 
     bool commandAvailable() {
+        // Enable or disable the receiver according to the current setting
+        if (_rxEnabled && Context::_radio == GUI::SUBMENU_SETTINGS_RADIO_DISABLED) {
+            LoRa::disableRx();
+            _rxEnabled = false;
+        } else if (!_rxEnabled && Context::_radio != GUI::SUBMENU_SETTINGS_RADIO_DISABLED) {
+            LoRa::enableRx();
+            _rxEnabled = true;
+        }
+
         // Check if some data has been received in the LoRa's FIFO
-        if (LoRa::rxAvailable()) {
+        if (Context::_radio != GUI::SUBMENU_SETTINGS_RADIO_DISABLED && LoRa::rxAvailable()) {
             // Retreive this data
             uint8_t rxBuffer2[BUFFER_RX_SIZE];
             int rxSize2 = LoRa::rx(rxBuffer2, BUFFER_RX_SIZE);
@@ -62,16 +75,18 @@ namespace Sync {
     }
 
     void send(uint8_t command, uint8_t* payload, int payloadSize) {
-        if (payloadSize > MAX_PAYLOAD_SIZE) {
-            payloadSize = MAX_PAYLOAD_SIZE;
+        if (Context::_radio == GUI::SUBMENU_SETTINGS_RADIO_ENABLED) {
+            if (payloadSize > MAX_PAYLOAD_SIZE) {
+                payloadSize = MAX_PAYLOAD_SIZE;
+            }
+            uint8_t buffer[HEADER_SIZE + MAX_PAYLOAD_SIZE];
+            buffer[HEADER_PREAMBLE] = SYNC_PREAMBLE;
+            buffer[HEADER_CHANNEL] = Context::_syncChannel;
+            buffer[HEADER_COMMAND] = command;
+            if (payloadSize > 0 && payload != nullptr) {
+                memcpy(buffer + HEADER_SIZE, payload, payloadSize);
+            }
+            LoRa::tx(buffer, HEADER_SIZE + payloadSize);
         }
-        uint8_t buffer[HEADER_SIZE + MAX_PAYLOAD_SIZE];
-        buffer[HEADER_PREAMBLE] = SYNC_PREAMBLE;
-        buffer[HEADER_CHANNEL] = Context::_syncChannel;
-        buffer[HEADER_COMMAND] = command;
-        if (payloadSize > 0 && payload != nullptr) {
-            memcpy(buffer + HEADER_SIZE, payload, payloadSize);
-        }
-        LoRa::tx(buffer, HEADER_SIZE + payloadSize);
     }
 }

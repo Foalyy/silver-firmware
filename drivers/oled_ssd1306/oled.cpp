@@ -564,6 +564,9 @@ namespace OLED {
         unsigned int percentwidth = percent * percentwidth100 / 100;
 
         for (unsigned int y_ = 0; y_ < height; y_++) {
+            if (height > 4 && (y_ == 0 || y_ == height - 1)) {
+                continue;
+            }
             setPixel(x, y + y_);
         }
         for (unsigned int x_ = 1; x_ < width - 1; x_++) {
@@ -572,17 +575,20 @@ namespace OLED {
             }
             setPixel(x + x_, y);
             if (x_ - (height <= 4 ? 0 : 1) <= percentwidth) {
-                for (unsigned int y = 1; y < height - 1; y++) {
-                    if (height > 4 && (y == 1 || y == height - 2)) {
+                for (unsigned int y_ = 1; y_ < height - 1; y_++) {
+                    if (height > 4 && (y_ == 1 || y_ == height - 2)) {
                         continue;
                     }
-                    setPixel(x + x_, y + y);
+                    setPixel(x + x_, y + y_);
                 }
             }
             setPixel(x + x_, y + height - 1);
         }
-        for (unsigned int y = 0; y < height; y++) {
-            setPixel(x + width - 1, y + y);
+        for (unsigned int y_ = 0; y_ < height; y_++) {
+            if (height > 4 && (y_ == 0 || y_ == height - 1)) {
+                continue;
+            }
+            setPixel(x + width - 1, y + y_);
         }
         if (height >= 5) {
             setPixel(x + 1, y);
@@ -590,8 +596,6 @@ namespace OLED {
             setPixel(x + 1, y + height - 1);
             setPixel(x + width - 2, y + height - 1);
         }
-
-        y += height;
     }
 
     // Draw a button
