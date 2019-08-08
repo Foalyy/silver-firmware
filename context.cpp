@@ -33,6 +33,12 @@ unsigned int Context::_countdown = 0;
 
 int Context::_vBat = 0;
 
+unsigned int Context::_shadowDelayMs = 0;
+int Context::_shadowIntervalNShots = 1;
+unsigned int Context::_shadowIntervalDelayMs = 0;
+unsigned int Context::_shadowTimingsFocusDurationMs = 0;
+unsigned int Context::_shadowTimingsTriggerDurationMs = 0;
+
 void Context::read() {
     uint32_t pageBuffer[Flash::FLASH_PAGE_SIZE_WORDS];
     Flash::readUserPage(pageBuffer);

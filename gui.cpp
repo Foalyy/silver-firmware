@@ -142,7 +142,7 @@ void GUI::showFooter(bool trigger, bool focus, bool waiting, bool input) {
     if (trigger || focus || waiting) {
         OLED::printInt(30, OLED::HEIGHT - 8, Context::_shotsLeft);
         OLED::print("/");
-        OLED::printInt(Context::_intervalNShots);
+        OLED::printInt(Context::_shadowIntervalNShots);
         OLED::print(" left");
         displayTime(OLED::WIDTH - 10, OLED::HEIGHT - 8, "", Context::_countdown - 1, false, false, 0, OLED::Alignment::RIGHT, Context::_countdown <= 10000);
     }
@@ -566,6 +566,7 @@ bool GUI::handleButtons() {
                 if (Context::_btnOkPressed) {
                     if (Context::_tFocus == 0) {
                         // Start
+                        copyShadowContext();
                         Context::_tFocus = Core::time();
                         if (Context::_triggerSync) {
                             Sync::send(Sync::CMD_FOCUS);
@@ -583,6 +584,7 @@ bool GUI::handleButtons() {
                 if (Context::_btnOkPressed) {
                     if (Context::_tTrigger == 0) {
                         // Start
+                        copyShadowContext();
                         Context::_tTrigger = Core::time();
                         Context::_skipDelay = false;
                         if (Context::_triggerSync) {
@@ -1021,4 +1023,12 @@ void GUI::showExitScreen() {
 
 void GUI::updateBrightness() {
     OLED::setContrast(_brightnessValues[Context::_brightness]);
+}
+
+void GUI::copyShadowContext() {
+    Context::_shadowDelayMs = Context::_delayMs;
+    Context::_shadowIntervalNShots = Context::_intervalNShots;
+    Context::_shadowIntervalDelayMs = Context::_intervalDelayMs;
+    Context::_shadowTimingsFocusDurationMs = Context::_timingsFocusDurationMs;
+    Context::_shadowTimingsTriggerDurationMs = Context::_timingsTriggerDurationMs;
 }

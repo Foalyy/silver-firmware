@@ -36,6 +36,12 @@ namespace Context {
 
     extern int _vBat;
 
+    extern unsigned int _shadowDelayMs;
+    extern int _shadowIntervalNShots;
+    extern unsigned int _shadowIntervalDelayMs;
+    extern unsigned int _shadowTimingsFocusDurationMs;
+    extern unsigned int _shadowTimingsTriggerDurationMs;
+
     void read();
     void save();
 

@@ -22,6 +22,7 @@ const int TURNOFF_DELAY = 1000;
 const int LED_BLINK_DELAY = 2000;
 const unsigned long DELAY_VBAT_MEAS = 10000;
 
+
 int main() {
     // Init the microcontroller
     Core::init();
@@ -172,6 +173,7 @@ int main() {
             } else {
                 if (Context::_tTrigger == 0) {
                     // Start
+                    GUI::copyShadowContext();
                     Context::_tTrigger = t;
                     Context::_skipDelay = false;
                     if (Context::_triggerSync) {
@@ -217,6 +219,7 @@ int main() {
             } else {
                 if (Context::_tFocus == 0) {
                     // Start
+                    GUI::copyShadowContext();
                     Context::_tFocus = t;
                     if (Context::_triggerSync) {
                         Sync::send(Sync::CMD_FOCUS);
@@ -268,6 +271,7 @@ int main() {
             }
         } else if (Context::_inputMode == GUI::SUBMENU_INPUT_MODE_TRIGGER && Context::_tTrigger == 0 && !lastInput && inputStatus) {
             tLastActivity = t;
+            GUI::copyShadowContext();
             Context::_tTrigger = Core::time();
             Context::_skipDelay = false;
             if (Context::_triggerSync) {
@@ -275,6 +279,7 @@ int main() {
             }
         } else if (Context::_inputMode == GUI::SUBMENU_INPUT_MODE_TRIGGER_NODELAY && Context::_tTrigger == 0 && !lastInput && inputStatus) {
             tLastActivity = t;
+            GUI::copyShadowContext();
             Context::_tTrigger = Core::time();
             Context::_skipDelay = true;
             if (Context::_triggerSync) {
@@ -403,6 +408,7 @@ int main() {
                     SyncUSB::send(command, payload, payloadSize + 1);
                 }
             } else if (command == Sync::CMD_FOCUS && (isCommandFromUSB || Context::_triggerSync)) {
+                GUI::copyShadowContext();
                 Context::_tFocus = Core::time();
                 if (isCommandFromUSB && Context::_triggerSync) {
                     Sync::send(command);
@@ -423,12 +429,14 @@ int main() {
                     Sync::send(command);
                 }
             } else if (command == Sync::CMD_TRIGGER && (isCommandFromUSB || Context::_triggerSync)) {
+                GUI::copyShadowContext();
                 Context::_tTrigger = Core::time();
                 Context::_skipDelay = false;
                 if (isCommandFromUSB && Context::_triggerSync) {
                     Sync::send(command);
                 }
             } else if (command == Sync::CMD_TRIGGER_NO_DELAY && (isCommandFromUSB || Context::_triggerSync)) {
+                GUI::copyShadowContext();
                 Context::_tTrigger = Core::time();
                 Context::_skipDelay = true;
                 if (isCommandFromUSB && Context::_triggerSync) {
@@ -494,16 +502,16 @@ int main() {
         }
         if (Context::_tTrigger > 0 && !Context::_submenuTriggerHold) {
             // Start and end times
-            unsigned int intervalDelayMs = Context::_intervalDelayMs;
-            if (intervalDelayMs < Context::_timingsFocusDurationMs + Context::_timingsTriggerDurationMs) {
-                intervalDelayMs = Context::_timingsFocusDurationMs + Context::_timingsTriggerDurationMs;
+            unsigned int intervalDelayMs = Context::_shadowIntervalDelayMs;
+            if (intervalDelayMs < Context::_shadowTimingsFocusDurationMs + Context::_shadowTimingsTriggerDurationMs) {
+                intervalDelayMs = Context::_shadowTimingsFocusDurationMs + Context::_shadowTimingsTriggerDurationMs;
             }
-            Core::Time tStart = Context::_tTrigger + (Context::_skipDelay ? 0 : Context::_delayMs);
-            Core::Time tEnd = tStart + (Context::_intervalNShots - 1) * intervalDelayMs + Context::_timingsFocusDurationMs + Context::_timingsTriggerDurationMs;
+            Core::Time tStart = Context::_tTrigger + (Context::_skipDelay ? 0 : Context::_shadowDelayMs);
+            Core::Time tEnd = tStart + (Context::_shadowIntervalNShots - 1) * intervalDelayMs + Context::_shadowTimingsFocusDurationMs + Context::_shadowTimingsTriggerDurationMs;
 
             if (t < tStart) {
                 waiting = true;
-                Context::_shotsLeft = Context::_intervalNShots;
+                Context::_shotsLeft = Context::_shadowIntervalNShots;
                 Context::_countdown = tStart - t;
                 if (tWaitingLed == 0) {
                     tWaitingLed = Core::time();
@@ -514,13 +522,13 @@ int main() {
                 } else {
                     unsigned int intervalNumber = (t - tStart) / intervalDelayMs;
                     Core::Time tInInterval = (t - tStart) % intervalDelayMs;
-                    Context::_shotsLeft = Context::_intervalNShots - intervalNumber;
-                    if (tInInterval < Context::_timingsFocusDurationMs) {
+                    Context::_shotsLeft = Context::_shadowIntervalNShots - intervalNumber;
+                    if (tInInterval < Context::_shadowTimingsFocusDurationMs) {
                         focus = true;
-                        Context::_countdown = Context::_timingsFocusDurationMs - tInInterval;
-                    } else if (tInInterval < Context::_timingsFocusDurationMs + Context::_timingsTriggerDurationMs) {
+                        Context::_countdown = Context::_shadowTimingsFocusDurationMs - tInInterval;
+                    } else if (tInInterval < Context::_shadowTimingsFocusDurationMs + Context::_shadowTimingsTriggerDurationMs) {
                         trigger = true;
-                        Context::_countdown = Context::_timingsFocusDurationMs + Context::_timingsTriggerDurationMs - tInInterval;
+                        Context::_countdown = Context::_shadowTimingsFocusDurationMs + Context::_shadowTimingsTriggerDurationMs - tInInterval;
                     } else {
                         waiting = true;
                         Context::_shotsLeft -= 1;

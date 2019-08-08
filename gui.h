@@ -58,6 +58,7 @@ namespace GUI {
     void decrementIntButton(int& value, unsigned int length, int min=0);
     void showExitScreen();
     void updateBrightness();
+    void copyShadowContext();
 
 }
 
