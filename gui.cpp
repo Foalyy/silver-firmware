@@ -32,7 +32,7 @@ const int FOOTER_HEIGHT = 11;
 Core::Time _tMenuChange = 0;
 const int DELAY_MENU_LABEL = 500;
 Core::Time _tGUIInit = 0;
-const int DELAY_LOGO_INIT = 2000;
+const int DELAY_LOGO_INIT = 1500;
 
 const int N_BRIGHTNESS_LEVELS = 4;
 const int _brightnessValues[N_BRIGHTNESS_LEVELS] = {0, 10, 20, 255};
@@ -98,7 +98,8 @@ void GUI::setMenu(int menuItemSelected) {
     _tMenuChange = Core::time();
 }
 
-void GUI::showFooter(bool trigger, bool focus, bool waiting, bool input) {
+void GUI::showFooter(bool trigger, bool triggerHold, bool focus, bool focusHold, bool waiting, bool input) {
+    // Clear the footer area
     OLED::clear(0, OLED::HEIGHT - FOOTER_HEIGHT, OLED::WIDTH, FOOTER_HEIGHT);
     OLED::rect(0, OLED::HEIGHT - FOOTER_HEIGHT, OLED::WIDTH, 1);
     OLED::setInverted(false);
@@ -139,28 +140,47 @@ void GUI::showFooter(bool trigger, bool focus, bool waiting, bool input) {
         }
     }
 
+    // RSSI indicator
+    bool showRSSI = false;
+    if (Context::_tReceivedCommand > 0) {
+        showRSSI = true;
+        //OLED::printInt(30, OLED::HEIGHT - 8, Context::_rssi + 137);
+        if (Context::_rssi >= Context::RSSI_HIGH) {
+            Font::Char8 c = ICON_RSSI_HIGH;
+            OLED::printMedium(15, OLED::HEIGHT - c.height, c);
+        } else if (Context::_rssi >= Context::RSSI_MID) {
+            Font::Char8 c = ICON_RSSI_MID;
+            OLED::printMedium(15, OLED::HEIGHT - c.height, c);
+        } else {
+            Font::Char8 c = ICON_RSSI_LOW;
+            OLED::printMedium(15, OLED::HEIGHT - c.height, c);
+        }
+    }
+
+    // Shots left and countdown
     if (trigger || focus || waiting) {
-        OLED::printInt(30, OLED::HEIGHT - 8, Context::_shotsLeft);
-        OLED::print("/");
-        OLED::printInt(Context::_shadowIntervalNShots);
-        OLED::print(" left");
+        if (Context::_tTrigger > 0) {
+            OLED::printInt(40, OLED::HEIGHT - 8, Context::_shotsLeft);
+            OLED::print("/");
+            OLED::printInt(Context::_shadowIntervalNShots);
+        }
         displayTime(OLED::WIDTH - 10, OLED::HEIGHT - 8, "", Context::_countdown - 1, false, false, 0, OLED::Alignment::RIGHT, Context::_countdown <= 10000);
     }
 
-    // Show infos on the bottom right
-    if (trigger) { // Trigger status
+    // Current status icon
+    if (trigger || triggerHold) {
         Font::Char8 c = ICON_TRIGGER;
         OLED::printMedium(OLED::WIDTH - c.width, OLED::HEIGHT - c.height, c);
-    } else if (focus) {
+    } else if (focus || focusHold) {
         Font::Char8 c = ICON_FOCUS;
         OLED::printMedium(OLED::WIDTH - c.width, OLED::HEIGHT - c.height, c);
     } else if (waiting) {
         Font::Char8 c = ICON_DELAY;
         OLED::printMedium(OLED::WIDTH - c.width, OLED::HEIGHT - c.height, c);
     }
-    if (input) { // Input
+    if (input) {
         Font::Char8 c = ICON_INPUT;
-        OLED::printMedium(OLED::WIDTH - ICON_TRIGGER.width - 2 - c.width, OLED::HEIGHT - c.height, c);
+        OLED::printMedium(15 + (showRSSI ? 10 : 0), OLED::HEIGHT - c.height, c);
     }
 }
 
@@ -267,7 +287,7 @@ void GUI::showMenuContent() {
     }
 }
 
-bool GUI::handleButtons() {
+bool GUI::handleButtons(int forceSync) {
     bool buttonPressed = false;
     int menuModified = -1;
 
@@ -580,15 +600,18 @@ bool GUI::handleButtons() {
                     }
                 }
 
-            } else if (Context::_submenuItemSelected == SUBMENU_TRIGGER_SHOOT && !Context::_submenuTriggerHold) {
+            } else if (Context::_submenuItemSelected == SUBMENU_TRIGGER_SHOOT) {
                 if (Context::_btnOkPressed) {
+                    // Pressed
                     if (Context::_tTrigger == 0) {
-                        // Start
-                        copyShadowContext();
-                        Context::_tTrigger = Core::time();
-                        Context::_skipDelay = false;
-                        if (Context::_triggerSync) {
-                            Sync::send(Sync::CMD_TRIGGER);
+                        if (!Context::_submenuTriggerHold) {
+                            // Start
+                            copyShadowContext();
+                            Context::_tTrigger = Core::time();
+                            Context::_skipDelay = false;
+                            if (Context::_triggerSync) {
+                                Sync::send(Sync::CMD_TRIGGER);
+                            }
                         }
                     } else {
                         // Stop
@@ -597,7 +620,13 @@ bool GUI::handleButtons() {
                         if (Context::_triggerSync) {
                             Sync::send(Sync::CMD_TRIGGER_RELEASE);
                         }
+                        if (Context::_submenuTriggerHold) {
+                            Context::_inhibitTriggerHold = true;
+                        }
                     }
+                } else {
+                    // Released
+                    Context::_inhibitTriggerHold = false;
                 }
             } else if (Context::_submenuItemSelected == SUBMENU_TRIGGER_SYNC) {
                 if (Context::_btnOkPressed) {
@@ -611,7 +640,7 @@ bool GUI::handleButtons() {
                 if (Context::_btnOkPressed) {
                     if (!Context::_editingItem) {
                         Context::_editingItem = true;
-                        Context::_editingItemCursor = 0;
+                        Context::_editingItemCursor = 1;
                     } else {
                         Context::_editingItem = false;
                     }
@@ -628,7 +657,7 @@ bool GUI::handleButtons() {
                 if (Context::_btnOkPressed) {
                     if (!Context::_editingItem) {
                         Context::_editingItem = true;
-                        Context::_editingItemCursor = 0;
+                        Context::_editingItemCursor = (Context::_submenuItemSelected == SUBMENU_INTERVAL_DELAY ? 1 : 0);
                     } else {
                         Context::_editingItem = false;
                     }
@@ -645,7 +674,7 @@ bool GUI::handleButtons() {
                 if (Context::_btnOkPressed) {
                     if (!Context::_editingItem) {
                         Context::_editingItem = true;
-                        Context::_editingItemCursor = 0;
+                        Context::_editingItemCursor = 1;
                     } else {
                         Context::_editingItem = false;
                     }
@@ -673,6 +702,9 @@ bool GUI::handleButtons() {
     }
 
     // Sync
+    if (forceSync > -1) {
+        menuModified = forceSync;
+    }
     if (menuModified > -1) {
         uint8_t payload[Sync::MAX_PAYLOAD_SIZE];
         int payloadSize = 0;
@@ -751,7 +783,7 @@ bool GUI::handleButtons() {
     return buttonPressed;
 }
 
-void GUI::update(bool refresh, bool refreshFooter, bool trigger, bool focus, bool waiting, bool input) {
+void GUI::update(bool refresh, bool refreshFooter, bool trigger, bool triggerHold, bool focus, bool focusHold, bool waiting, bool input) {
     // Hide init logo after timeout
     if (_tGUIInit > 0) {
         if (Core::time() >= _tGUIInit + DELAY_LOGO_INIT) {
@@ -777,7 +809,7 @@ void GUI::update(bool refresh, bool refreshFooter, bool trigger, bool focus, boo
 
     // Update footer
     if (refreshFooter) {
-        GUI::showFooter(trigger, focus, waiting, input);
+        GUI::showFooter(trigger, triggerHold, focus, focusHold, waiting, input);
     }
 
     // Update screen

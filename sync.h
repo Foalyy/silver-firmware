@@ -30,6 +30,7 @@ namespace Sync {
     bool init();
     bool commandAvailable();
     uint8_t getCommand();
+    int getRSSI();
     int getPayload(uint8_t* buffer);
     void send(uint8_t command, uint8_t* payload=nullptr, int payloadSize=0);
 

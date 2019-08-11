@@ -14,6 +14,7 @@ namespace Sync {
     int _rxSize = 0;
     bool _commandAvailable = false;
     bool _rxEnabled = false;
+    int _rssi = -137;
 
     bool init() {
         LoRa::setPin(LoRa::PinFunction::RESET, PIN_LORA_RESET);
@@ -55,6 +56,8 @@ namespace Sync {
                 _rxSize = rxSize2;
                 _commandAvailable = true;
             }
+
+            _rssi = LoRa::lastPacketRSSI();
         }
         return _commandAvailable;
     }
@@ -65,6 +68,10 @@ namespace Sync {
             return _rxBuffer[HEADER_COMMAND];
         }
         return 0xFF;
+    }
+
+    int getRSSI() {
+        return _rssi;
     }
 
     int getPayload(uint8_t* buffer) {

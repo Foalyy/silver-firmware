@@ -45,10 +45,10 @@ namespace GUI {
     void init();
     void setMenu(int menuItemSelected);
     void showMenu();
-    void showFooter(bool trigger, bool focus, bool waiting, bool input);
+    void showFooter(bool trigger, bool triggerHold, bool focus, bool focusHold, bool waiting, bool input);
     void showMenuContent();
-    bool handleButtons();
-    void update(bool refresh, bool refreshFooter, bool trigger, bool focus, bool waiting, bool input);
+    bool handleButtons(int forceSync=-1);
+    void update(bool refresh, bool refreshFooter, bool trigger, bool triggerHold, bool focus, bool focusHold, bool waiting, bool input);
     void displayTimeButton(unsigned int x, unsigned int y, unsigned int width, unsigned int height, const char* label, unsigned int valueMs, bool selected=false, bool editing=false, int editingCursor=0);
     void displayTime(unsigned int x, unsigned int y, const char* label, unsigned int valueMs, bool selected=false, bool editing=false, int editingCursor=0, OLED::Alignment alignment=OLED::Alignment::LEFT, bool displayFrac=true);
     void incrementTimeButton(unsigned int& valueMs);

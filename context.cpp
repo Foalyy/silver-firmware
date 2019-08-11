@@ -27,6 +27,7 @@ int Context::_brightness = 3;
 
 Core::Time Context::_tFocus = 0;
 Core::Time Context::_tTrigger = 0;
+bool Context::_inhibitTriggerHold = false;
 bool Context::_skipDelay = false;
 int Context::_shotsLeft = 0;
 unsigned int Context::_countdown = 0;
@@ -38,6 +39,10 @@ int Context::_shadowIntervalNShots = 1;
 unsigned int Context::_shadowIntervalDelayMs = 0;
 unsigned int Context::_shadowTimingsFocusDurationMs = 0;
 unsigned int Context::_shadowTimingsTriggerDurationMs = 0;
+
+int Context::_rssi = -137;
+Core::Time Context::_tReceivedCommand = 0;
+
 
 void Context::read() {
     uint32_t pageBuffer[Flash::FLASH_PAGE_SIZE_WORDS];

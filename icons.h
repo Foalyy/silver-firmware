@@ -17,6 +17,7 @@ const Font::Char8 ICON_TRIGGER = {
         0b00111100,
     }
 };
+
 const Font::Char8 ICON_DELAY = {
     8,
     8,
@@ -31,6 +32,7 @@ const Font::Char8 ICON_DELAY = {
         0b00000000,
     }
 };
+
 const Font::Char8 ICON_INTVL = {
     8,
     8,
@@ -45,6 +47,7 @@ const Font::Char8 ICON_INTVL = {
         0b00001110,
     }
 };
+
 const Font::Char8 ICON_TIMINGS = {
     8,
     8,
@@ -59,6 +62,7 @@ const Font::Char8 ICON_TIMINGS = {
         0b00111100,
     }
 };
+
 const Font::Char8 ICON_INPUT = {
     7,
     8,
@@ -72,6 +76,7 @@ const Font::Char8 ICON_INPUT = {
         0b11111110,
     }
 };
+
 const Font::Char8 ICON_SETTINGS = {
     8,
     8,
@@ -86,6 +91,7 @@ const Font::Char8 ICON_SETTINGS = {
         0b00000100,
     }
 };
+
 const Font::Char8 ICON_FOCUS = {
     7,
     8,
@@ -99,6 +105,52 @@ const Font::Char8 ICON_FOCUS = {
         0b01111110,
     }
 };
+
+const Font::Char8 ICON_RSSI_LOW = {
+    8,
+    8,
+    {
+        0b10110000,
+        0b10110000,
+        0b10000000,
+        0b10000000,
+        0b10000000,
+        0b10000000,
+        0b10000000,
+        0b10000000,
+    }
+};
+
+const Font::Char8 ICON_RSSI_MID = {
+    8,
+    8,
+    {
+        0b10110000,
+        0b10110000,
+        0b10000000,
+        0b10111100,
+        0b10111100,
+        0b10000000,
+        0b10000000,
+        0b10000000,
+    }
+};
+
+const Font::Char8 ICON_RSSI_HIGH = {
+    8,
+    8,
+    {
+        0b10110000,
+        0b10110000,
+        0b10000000,
+        0b10111100,
+        0b10111100,
+        0b10000000,
+        0b10111111,
+        0b10111111,
+    }
+};
+
 const Font::Char32 ICON_SILICA_XL = {
     32,
     32,
@@ -137,6 +189,7 @@ const Font::Char32 ICON_SILICA_XL = {
         0b00000000000000000000000000000000,
     }
 };
+
 const Font::Char64 ICON_SILICA_XXL = {
     64,
     64,

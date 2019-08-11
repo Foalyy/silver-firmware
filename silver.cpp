@@ -88,7 +88,9 @@ int main() {
     // Current state
     bool lastWaiting = false;
     bool lastFocus = false;
+    bool lastFocusHold = false;
     bool lastTrigger = false;
+    bool lastTriggerHold = false;
     bool lastBtnPw = true;
     bool lastBtnFocus = false;
     bool lastBtnTrigger = false;
@@ -112,12 +114,20 @@ int main() {
     bool screenDimmed = false;
     bool screenOff = false;
     Core::Time tVbatMeas = 0;
+    int forceSync = 0;
+    Core::Time tForceSync = 500;
+    const int FORCE_SYNC_DELAY = 200;
+    const int N_MENUS_TO_SYNC = 5;
+    const int syncMenus[N_MENUS_TO_SYNC] = {GUI::MENU_TRIGGER, GUI::MENU_DELAY, GUI::MENU_INTERVAL, GUI::MENU_TIMINGS, GUI::MENU_INPUT};
+    const bool syncEnabled[N_MENUS_TO_SYNC] = {Context::_triggerSync, Context::_delaySync, Context::_intervalSync, Context::_timingsSync, Context::_inputSync};
 
     // Main loop
     while (1) {
         bool waiting = false;
         bool focus = false;
+        bool focusHold = false;
         bool trigger = false;
+        bool triggerHold = false;
         bool refresh = false;
         bool refreshFooter = false;
 
@@ -151,8 +161,23 @@ int main() {
             GPIO::set(PIN_PW_EN, GPIO::LOW);
         }
 
+        // Force the synchronisation at startup
+        int forceSyncMenu = -1;
+        Core::Time t = Core::time();
+        if (forceSync > -1 && t >= tForceSync + FORCE_SYNC_DELAY) {
+            if (forceSync < N_MENUS_TO_SYNC) {
+                if (syncEnabled[forceSync]) {
+                    forceSyncMenu = syncMenus[forceSync];
+                }
+                forceSync++;
+            } else {
+                forceSync = -1;
+            }
+            tForceSync = t;
+        }
+
         // Change menu when the button is pressed
-        bool buttonPressed = GUI::handleButtons();
+        bool buttonPressed = GUI::handleButtons(forceSyncMenu);
         if (buttonPressed) {
             tLastActivity = Core::time();
         }
@@ -165,13 +190,13 @@ int main() {
             // Pressed
             tLastActivity = t;
             refresh = true;
-            if (Context::_submenuTriggerHold) {
-                if (Context::_triggerSync) {
-                    Sync::send(Sync::CMD_TRIGGER_HOLD);
-                    tTriggerHoldKeepalive = Core::time();
-                }
-            } else {
-                if (Context::_tTrigger == 0) {
+            if (Context::_tTrigger == 0) {
+                if (Context::_submenuTriggerHold) {
+                    if (Context::_triggerSync && !Context::_inhibitTriggerHold) {
+                        Sync::send(Sync::CMD_TRIGGER_HOLD);
+                        tTriggerHoldKeepalive = Core::time();
+                    }
+                } else {
                     // Start
                     GUI::copyShadowContext();
                     Context::_tTrigger = t;
@@ -179,35 +204,39 @@ int main() {
                     if (Context::_triggerSync) {
                         Sync::send(Sync::CMD_TRIGGER);
                     }
-                } else {
-                    // Stop
-                    Context::_tTrigger = 0;
-                    if (Context::_triggerSync) {
-                        Sync::send(Sync::CMD_TRIGGER_RELEASE);
-                    }
+                }
+            } else {
+                // Stop
+                Context::_tTrigger = 0;
+                if (Context::_triggerSync) {
+                    Sync::send(Sync::CMD_TRIGGER_RELEASE);
+                }
+                if (Context::_submenuTriggerHold) {
+                    Context::_inhibitTriggerHold = true;
                 }
             }
         } else if (lastBtnTrigger && !btnTrigger) {
             // Released
             tLastActivity = t;
             refresh = true;
+            Context::_inhibitTriggerHold = false;
             if (Context::_submenuTriggerHold) {
-                if (Context::_triggerSync) {
+                if (Context::_triggerSync && !Context::_inhibitTriggerHold) {
                     Sync::send(Sync::CMD_TRIGGER_RELEASE);
                     tTriggerHoldKeepalive = 0;
                 }
             }
         }
-        if (btnTrigger && Context::_submenuTriggerHold) {
+        if (btnTrigger && Context::_submenuTriggerHold && !Context::_inhibitTriggerHold) {
             // Hold down
             tLastActivity = t;
-            trigger = true;
+            triggerHold = true;
         }
 
         // Focus button
         t = Core::time();
         bool btnFocus = !GPIO::get(PIN_BTN_FOCUS);
-        if (!lastBtnFocus && btnFocus) {
+        if (Context::_tTrigger == 0 && !lastBtnFocus && btnFocus) {
             // Pressed
             tLastActivity = t;
             refresh = true;
@@ -246,24 +275,26 @@ int main() {
         if (btnFocus && Context::_submenuFocusHold) {
             // Hold down
             tLastActivity = t;
-            focus = true;
+            focusHold = true;
         }
 
         // External input
         bool inputStatus = !GPIO::get(PIN_INPUT);
-        if (Context::_submenuTriggerHold || Context::_inputMode == GUI::SUBMENU_INPUT_MODE_PASSTHROUGH) {
+        if (Context::_inputMode == GUI::SUBMENU_INPUT_MODE_PASSTHROUGH) {
             if (inputStatus) {
                 // Input low
                 tLastActivity = t;
-                trigger = true;
+                triggerHold = true;
                 if (!lastInput) {
                     // Input just asserted
+                    refresh = true;
                     if (Context::_triggerSync) {
                         Sync::send(Sync::CMD_TRIGGER_HOLD);
                         tTriggerHoldKeepalive = Core::time();
                     }
                 }
             } else if (!inputStatus && lastInput) {
+                refresh = true;
                 if (Context::_triggerSync) {
                     Sync::send(Sync::CMD_TRIGGER_RELEASE);
                     tTriggerHoldKeepalive = 0;
@@ -271,6 +302,7 @@ int main() {
             }
         } else if (Context::_inputMode == GUI::SUBMENU_INPUT_MODE_TRIGGER && Context::_tTrigger == 0 && !lastInput && inputStatus) {
             tLastActivity = t;
+            refresh = true;
             GUI::copyShadowContext();
             Context::_tTrigger = Core::time();
             Context::_skipDelay = false;
@@ -279,6 +311,7 @@ int main() {
             }
         } else if (Context::_inputMode == GUI::SUBMENU_INPUT_MODE_TRIGGER_NODELAY && Context::_tTrigger == 0 && !lastInput && inputStatus) {
             tLastActivity = t;
+            refresh = true;
             GUI::copyShadowContext();
             Context::_tTrigger = Core::time();
             Context::_skipDelay = true;
@@ -289,20 +322,9 @@ int main() {
 
         // Focus and trigger hold with center button
         bool btnOk = !GPIO::get(PIN_BTN_OK);
-        if (Context::_menuItemSelected == GUI::MENU_TRIGGER && Context::_submenuItemSelected == GUI::SUBMENU_TRIGGER_FOCUS && Context::_submenuFocusHold) {
+        if (Context::_menuItemSelected == GUI::MENU_TRIGGER && Context::_submenuItemSelected == GUI::SUBMENU_TRIGGER_SHOOT && Context::_submenuTriggerHold && !Context::_inhibitTriggerHold) {
             if (btnOk) {
-                focus = true;
-                if (!lastBtnOk) {
-                    Sync::send(Sync::CMD_FOCUS_HOLD);
-                    tFocusHoldKeepalive = Core::time();
-                }
-            } else if (lastBtnOk && !btnOk) {
-                Sync::send(Sync::CMD_FOCUS_RELEASE);
-                tFocusHoldKeepalive = 0;
-            }
-        } else if (Context::_menuItemSelected == GUI::MENU_TRIGGER && Context::_submenuItemSelected == GUI::SUBMENU_TRIGGER_SHOOT && Context::_submenuTriggerHold) {
-            if (btnOk) {
-                trigger = true;
+                triggerHold = true;
                 if (!lastBtnOk) {
                     Sync::send(Sync::CMD_TRIGGER_HOLD);
                     tTriggerHoldKeepalive = Core::time();
@@ -311,17 +333,28 @@ int main() {
                 Sync::send(Sync::CMD_TRIGGER_RELEASE);
                 tTriggerHoldKeepalive = 0;
             }
+        } else if (Context::_menuItemSelected == GUI::MENU_TRIGGER && Context::_submenuItemSelected == GUI::SUBMENU_TRIGGER_FOCUS && Context::_submenuFocusHold) {
+            if (Context::_tTrigger == 0 && btnOk) {
+                focusHold = true;
+                if (!lastBtnOk) {
+                    Sync::send(Sync::CMD_FOCUS_HOLD);
+                    tFocusHoldKeepalive = Core::time();
+                }
+            } else if (lastBtnOk && !btnOk) {
+                Sync::send(Sync::CMD_FOCUS_RELEASE);
+                tFocusHoldKeepalive = 0;
+            }
         }
 
         // Focus and trigger hold keepalive
         t = Core::time();
-        if (tFocusHoldKeepalive > 0 && t >= tFocusHoldKeepalive + REMOTE_HOLD_KEEPALIVE) {
-            Sync::send(Sync::CMD_FOCUS_HOLD);
-            tFocusHoldKeepalive = t;
-        }
         if (tTriggerHoldKeepalive > 0 && t >= tTriggerHoldKeepalive + REMOTE_HOLD_KEEPALIVE) {
             Sync::send(Sync::CMD_TRIGGER_HOLD);
             tTriggerHoldKeepalive = t;
+        }
+        if (tFocusHoldKeepalive > 0 && t >= tFocusHoldKeepalive + REMOTE_HOLD_KEEPALIVE) {
+            Sync::send(Sync::CMD_FOCUS_HOLD);
+            tFocusHoldKeepalive = t;
         }
 
         // Receive data from other modules and from USB
@@ -334,6 +367,9 @@ int main() {
             command = Sync::getCommand();
             payloadSize = Sync::getPayload(payload);
             commandAvailable = true;
+            Context::_rssi = Sync::getRSSI();
+            Context::_tReceivedCommand = Core::time();
+            refreshFooter = true;
         }
         if (!commandAvailable && SyncUSB::commandAvailable()) {
             command = SyncUSB::getCommand();
@@ -466,11 +502,22 @@ int main() {
 
         // Remote focus and trigger hold
         t = Core::time();
-        if (remoteFocusHold) {
-            focus = true;
+        if (remoteTriggerHold) {
+            triggerHold = true;
+            if (t >= tRemoteTriggerHold + REMOTE_HOLD_TIMEOUT) {
+                // Timeout
+                triggerHold = false;
+                Context::_tTrigger = 0;
+                remoteTriggerHold = false;
+                if (isRemoteTriggerHoldFromUSB && Context::_triggerSync) {
+                    Sync::send(Sync::CMD_TRIGGER_RELEASE);
+                }
+            }
+        } else if (remoteFocusHold) {
+            focusHold = true;
             if (t >= tRemoteFocusHold + REMOTE_HOLD_TIMEOUT) {
                 // Timeout
-                focus = false;
+                focusHold = false;
                 Context::_tFocus = 0;
                 remoteFocusHold = false;
                 if (isRemoteFocusHoldFromUSB && Context::_triggerSync) {
@@ -478,29 +525,15 @@ int main() {
                 }
             }
         }
-        if (remoteTriggerHold) {
-            trigger = true;
-            if (t >= tRemoteTriggerHold + REMOTE_HOLD_TIMEOUT) {
-                // Timeout
-                trigger = false;
-                Context::_tTrigger = 0;
-                remoteTriggerHold = false;
-                if (isRemoteTriggerHoldFromUSB && Context::_triggerSync) {
-                    Sync::send(Sync::CMD_TRIGGER_RELEASE);
-                }
-            }
-        }
 
         // Focus and trigger timings (non-hold)
         t = Core::time();
-        if (Context::_tFocus > 0 && !Context::_submenuFocusHold) {
-            if (t > Context::_tFocus + Context::_timingsFocusDurationMs) {
-                Context::_tFocus = 0;
-            } else {
-                focus = true;
-            }
-        }
-        if (Context::_tTrigger > 0 && !Context::_submenuTriggerHold) {
+        if (Context::_tTrigger > 0) {
+            // Make sure focus is disabled
+            Context::_tFocus = 0;
+            tTriggerHoldKeepalive = 0;
+            tFocusHoldKeepalive = 0;
+
             // Start and end times
             unsigned int intervalDelayMs = Context::_shadowIntervalDelayMs;
             if (intervalDelayMs < Context::_shadowTimingsFocusDurationMs + Context::_shadowTimingsTriggerDurationMs) {
@@ -519,6 +552,7 @@ int main() {
             } else {
                 if (t >= tEnd) {
                     Context::_tTrigger = 0;
+                    refresh = true;
                 } else {
                     unsigned int intervalNumber = (t - tStart) / intervalDelayMs;
                     Core::Time tInInterval = (t - tStart) % intervalDelayMs;
@@ -536,9 +570,19 @@ int main() {
                     }
                 }
             }
+        } else if (Context::_tFocus > 0 && !Context::_submenuFocusHold) {
+            if (t > Context::_tFocus + Context::_timingsFocusDurationMs) {
+                Context::_tFocus = 0;
+                refresh = true;
+            } else {
+                focus = true;
+                Context::_countdown = Context::_shadowTimingsFocusDurationMs - (t - Context::_tFocus);
+            }
         }
-        GPIO::set(PIN_FOCUS, focus || trigger);
-        GPIO::set(PIN_TRIGGER, trigger);
+
+        // Assert the outputs
+        GPIO::set(PIN_FOCUS, focus || focusHold || trigger || triggerHold);
+        GPIO::set(PIN_TRIGGER, trigger || triggerHold);
 
         // Input LED
         if (inputStatus) {
@@ -549,17 +593,11 @@ int main() {
             GPIO::set(PIN_LED_INPUT, GPIO::HIGH);
         }
 
-        // Focus LED
-        if (focus) {
-            // Off
-            GPIO::set(PIN_LED_FOCUS, GPIO::LOW);
-        } else {
-            // On
-            GPIO::set(PIN_LED_FOCUS, GPIO::HIGH);
-        }
-
         // Trigger LED
-        if (waiting) {
+        if (trigger || triggerHold) {
+            // On
+            GPIO::set(PIN_LED_TRIGGER, GPIO::LOW);
+        } else if (waiting) {
             // Blink the trigger LED while waiting
             const int DELAY = 400;
             t = Core::time();
@@ -572,17 +610,23 @@ int main() {
             } else {
                 tWaitingLed += DELAY;
             }
-        } else if (trigger) {
-            // On
-            GPIO::set(PIN_LED_TRIGGER, GPIO::LOW);
         } else {
             // Off
             GPIO::set(PIN_LED_TRIGGER, GPIO::HIGH);
         }
 
+        // Focus LED
+        if (focus || focusHold) {
+            // Off
+            GPIO::set(PIN_LED_FOCUS, GPIO::LOW);
+        } else {
+            // On
+            GPIO::set(PIN_LED_FOCUS, GPIO::HIGH);
+        }
+
         // Measure battery voltage
         t = Core::time();
-        if (tVbatMeas == 0 || t >= tVbatMeas + DELAY_VBAT_MEAS) {
+        if ((tVbatMeas == 0 && t >= 1000) || t >= tVbatMeas + DELAY_VBAT_MEAS) {
             GPIO::set(PIN_VBAT_MEAS_CMD, GPIO::HIGH);
             Core::sleep(10);
             Context::_vBat = 2 * ADC::read(ADC_VBAT);
@@ -606,23 +650,32 @@ int main() {
             screenOff = false;
         }
 
+        // Hide the RSSI indicator after a timeout
+        t = Core::time();
+        if (Context::_tReceivedCommand > 0 && t >= Context::_tReceivedCommand + Context::RSSI_TIMEOUT) {
+            refreshFooter = true;
+            Context::_tReceivedCommand = 0;
+        }
+
         // Refresh the footer when there is a change of state
         if ((waiting || focus || trigger) && t > tRefreshFooter + (Context::_countdown < 10000 ? 100 : 1000)) {
             refreshFooter = true;
             tRefreshFooter = t;
         }
-        if (lastWaiting != waiting || lastFocus != focus || lastTrigger != trigger || lastInput != inputStatus) {
+        if (lastWaiting != waiting || lastFocus != focus || lastFocusHold != focusHold || lastTrigger != trigger || lastTriggerHold != triggerHold || lastInput != inputStatus) {
             refreshFooter = true;
         }
 
         // Update the display
-        GUI::update(refresh, refreshFooter, trigger, focus, waiting, inputStatus);
+        GUI::update(refresh, refreshFooter, trigger, triggerHold, focus, focusHold, waiting, inputStatus);
 
         Core::sleep(10);
 
         lastWaiting = waiting;
         lastFocus = focus;
+        lastFocusHold = focusHold;
         lastTrigger = trigger;
+        lastTriggerHold = triggerHold;
         lastBtnPw = btnPw;
         lastBtnFocus = btnFocus;
         lastBtnTrigger = btnTrigger;

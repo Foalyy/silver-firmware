@@ -30,6 +30,7 @@ namespace Context {
 
     extern Core::Time _tFocus;
     extern Core::Time _tTrigger;
+    extern bool _inhibitTriggerHold;
     extern bool _skipDelay;
     extern int _shotsLeft;
     extern unsigned int _countdown;
@@ -41,6 +42,12 @@ namespace Context {
     extern unsigned int _shadowIntervalDelayMs;
     extern unsigned int _shadowTimingsFocusDurationMs;
     extern unsigned int _shadowTimingsTriggerDurationMs;
+
+    extern int _rssi;
+    extern Core::Time _tReceivedCommand;
+    const int RSSI_TIMEOUT = 1000;
+    const int RSSI_MID = -100;
+    const int RSSI_HIGH = -80;
 
     void read();
     void save();
